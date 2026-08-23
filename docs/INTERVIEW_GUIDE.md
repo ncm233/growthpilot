@@ -104,7 +104,7 @@ POST /runs/{id}/decide { decision: "approved" }
 
 ---
 
-## 四、八个关键设计决策（被追问时的主要弹药）
+## 四、十个关键设计决策（被追问时的主要弹药）
 
 每条都按 **决策 → 备选方案 → 为什么这么选 → 代价** 的格式讲。
 **主动说出"代价"是最强的加分信号**——它证明你是权衡出来的，不是抄来的。
@@ -438,3 +438,36 @@ A：不是代码，是**决定哪些事不让 Agent 做**。
 - [ ] `docs/EVALUATION.md` 的消融表打开备用
 - [ ] Dashboard 左侧三个预置目标按钮试点一遍（创作者注册转化率 / 落地页注册率 / 邀请好友转化率），现场不用现打字
 - [ ] 短板清单挑好今天要主动讲的 2 条
+
+---
+
+## 十、简历文案（用做完之后的真实数字，不是早期规划稿的占位符）
+
+### 项目条目
+
+> **GrowthPilot｜自主增长实验 Agent（个人项目，开源已部署）**
+> `github.com/ncm233/growthpilot` ｜ Demo：见 Zeabur 部署链接
+>
+> - 设计并实现 5 Agent 协作的增长实验 Agent：Plan→Tool Call→Verify→Reflect 主循环，
+>   独立 Critic Agent 校验预算约束与数字幻觉，人工审批作为任何接口（含 MCP）都无法绕过的强制边界
+> - 自建中文增长案例 RAG：LanceDB 混合检索（向量+FTS，RRF 融合）+ SiliconFlow bge-m3/bge-reranker-v2-m3
+>   重排，三档 Provider 可插拔（Mock/云端API/本地模型）；通过系统 A/B 测试将 query 构造方式从
+>   ambiguous（0.29 分）优化到 correct（0.89 分）
+> - 将检索与生成能力封装为 MCP Server，Claude Desktop 等客户端可直接调用；刻意不暴露审批/写回动作，
+>   通过真实子进程 + JSON-RPC 协议测试发现并修复 2 个隐蔽 bug（跨文件工具注册静默失效、
+>   STDIO transport 下的 LanceDB 死锁）
+> - 接入 Langfuse 全链路可观测性（18 个语义化 observation/请求），凭真实 trace 数据定位到 RAG 检索
+>   占请求耗时 85%+，实现查询缓存后端到端延迟降低 84%（9.37s→1.52s，Langfuse trace 复核验证）
+> - 设计对抗性评测套件（Critic Baseline 60 例 + Adversarial 28 例），针对判断逻辑边界构造用例，
+>   发现并修复 2 个真实校验缺陷（未验证流失方向、幽灵引用导致崩溃）
+
+### 一句话总结（HR 初筛 / 自我介绍开场）
+
+> 「GrowthPilot 是一个自主增长实验 Agent，覆盖 RAG 检索、MCP 工具暴露、对抗性评测和全链路可观测性。
+> 项目里 6 个真实 bug 都是靠系统化测试（真实协议测试、对抗性用例、Langfuse trace）找到并修复的，
+> 不是设计出来演示的——这也是我最想在面试里讲清楚的部分：怎么验证一个 Agent 系统真的可靠。」
+
+### 待补：Zeabur 部署链接上线后
+
+部署完成后回来把 Demo 链接补进这份文档、README 顶部、以及简历项目条目的第一行——
+现在先占位，**不要在简历投出去之前漏填**。

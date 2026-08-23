@@ -14,6 +14,20 @@ function pillLabel(status) {
 }
 function pct(x) { return (x * 100).toFixed(1) + "%"; }
 
+function citationsBlock(citations) {
+  if (!citations || !citations.length) {
+    return `<p class="hint">未检索到足够相关的历史案例（RAG 降级：不注入不相关内容）</p>`;
+  }
+  return `<div class="citation-list">${citations.map(c => `
+    <div class="citation-item">
+      <a href="${c.source_url}" target="_blank" rel="noopener">[${c.n}] ${c.scene}</a>
+      <span class="citation-score">score ${c.score}</span>
+      ${c.confidence === "secondary" ? `<span class="badge">二手引用</span>` : ""}
+      <p class="citation-lesson">${c.lesson}（效果：${c.lift}）</p>
+    </div>
+  `).join("")}</div>`;
+}
+
 async function loadRuns() {
   const runs = await (await fetch("/api/runs")).json();
   runsList.innerHTML = runs.map(r => `
@@ -56,6 +70,8 @@ async function showRun(id) {
         <tr><td>用户数</td><td>${o.from_users} → ${o.to_users}</td></tr>
         <tr><td>流失率</td><td>${pct(o.drop_rate)}</td></tr>
       </table>
+      <h3 class="citation-h3">RAG 检索到的参考案例</h3>
+      ${citationsBlock(o.citations)}
     </div>
 
     <div class="section-block">
@@ -66,6 +82,8 @@ async function showRun(id) {
         <tr><td>B 组</td><td>${e.variant_b.desc}</td></tr>
         <tr><td>提议预算 / 上限</td><td>¥${e.proposed_budget.toFixed(0)} / ¥${e.budget_limit.toFixed(0)}</td></tr>
       </table>
+      <h3 class="citation-h3">RAG 检索到的参考案例</h3>
+      ${citationsBlock(e.citations)}
     </div>
 
     <div class="section-block">

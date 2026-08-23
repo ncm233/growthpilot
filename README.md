@@ -4,11 +4,76 @@
 
 面向中国企业场景：企业微信 / 飞书 / CRM / ERP / 表单 / 官网埋点，而不是 HubSpot + GA4 那一套海外栈。
 
+![GrowthPilot Demo](assets/demo.gif)
+
+*目标输入 → RAG 检索到的历史案例引用（可点击跳转真实来源）→ Critic 校验 → Persona 模拟 → 人工审批 → 案例库*
+
+## 架构
+
+```mermaid
+flowchart TD
+    U["用户目标<br/>『把注册转化率从 3.4% 提到 5%』"]
+
+    subgraph entry["接入层（两个入口，共用同一套 Agent 逻辑）"]
+        DASH["Dashboard<br/>FastAPI"]
+        MCP["MCP Server<br/>Claude Desktop / Cursor"]
+    end
+
+    U --> DASH
+    U -.-> MCP
+
+    subgraph core["orchestrator.run_goal()"]
+        direction TB
+        RESEARCH["research_agent<br/>目标 → 结构化参数"]
+        DATA["data_agent<br/>取漏斗/表单/CRM/ERP数据"]
+        OPP["opportunity_agent<br/>定位最大流失环节"]
+        RAG[("RAG 检索<br/>LanceDB 混合检索<br/>+ SiliconFlow rerank")]
+        EXP["experiment_agent<br/>生成 A/B 实验方案"]
+        CRITIC{{"critic_agent<br/>独立校验：预算/幻觉/流失方向"}}
+        SIM["simulator<br/>Persona 模拟排序"]
+
+        RESEARCH --> DATA --> OPP
+        OPP <-.引用历史案例.-> RAG
+        OPP --> EXP
+        EXP <-.引用历史案例.-> RAG
+        EXP --> CRITIC
+        CRITIC -->|不通过| EXP
+        CRITIC -->|通过| SIM
+    end
+
+    DASH --> RESEARCH
+    MCP -.propose_experiment.-> RESEARCH
+    MCP -.search_growth_playbook.-> RAG
+
+    SIM --> APPROVAL{{"人工审批边界<br/>Agent 到此为止，绝不自动执行"}}
+    APPROVAL -->|批准| WRITEBACK["写回 CRM / 表单<br/>飞书/企业微信通知"]
+    APPROVAL -->|拒绝| MEMORY[("memory 表<br/>结构化实验记忆")]
+    WRITEBACK --> MEMORY
+    MEMORY -.沉淀为未来案例.-> RAG
+
+    OBS["Langfuse：18 个语义化 observation/请求<br/>agent / guardrail / retriever / generation / tool"]
+    core -.@observe 全链路打点.-> OBS
+
+    classDef guardrail fill:#fbf0dd,stroke:#a8660f,stroke-width:2px,color:#142430;
+    classDef human fill:#fbf0dd,stroke:#b23b3b,stroke-width:2px,color:#142430;
+    classDef store fill:#e1eef2,stroke:#1d6f8c,color:#142430;
+    classDef obs fill:#eef2f4,stroke:#7c8f9a,stroke-dasharray: 4 3,color:#142430;
+    class CRITIC guardrail
+    class APPROVAL human
+    class RAG,MEMORY store
+    class OBS obs
+```
+
+**图上两个特殊节点是整个架构的核心**：`critic_agent`（黄色菱形）是独立于生成方的校验层，
+`人工审批边界`（红色菱形）是任何接口——包括 MCP——都无法绕过的强制人工确认点，
+详见 [INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md) 决策 #1。
+
 详细文档：
 - [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) — 目录结构与分层职责
 - [docs/API_AND_MATERIALS.md](docs/API_AND_MATERIALS.md) — API 清单与接入优先级
 - [docs/TECH_STACK.md](docs/TECH_STACK.md) — 技术选型记录，含真实 A/B 测试数据和踩坑记录
 - [docs/HARNESS_DESIGN.md](docs/HARNESS_DESIGN.md) — 三层 harness 架构对齐 *Code as Agent Harness* 论文，含一个诚实的架构发现
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Zeabur 部署配置与已知限制
 - [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) — 分阶段路线图（早期规划稿）
 - [docs/INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md) — 面试讲解稿
 - [apps/mcp-server/README.md](apps/mcp-server/README.md) — MCP Server 工具清单与设计边界

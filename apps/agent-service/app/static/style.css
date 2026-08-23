@@ -122,6 +122,25 @@ table.kv { width: 100%; border-collapse: collapse; font-size: .84rem; }
 table.kv td { padding: .25rem .4rem; border-bottom: 1px solid var(--border); }
 table.kv td:first-child { color: var(--fg-soft); width: 40%; }
 
+.citation-h3 { margin-top: 1rem !important; }
+.citation-list { display: flex; flex-direction: column; gap: .5rem; }
+.citation-item {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  padding: .5rem .7rem;
+  font-size: .82rem;
+}
+.citation-item a { color: var(--fg); font-weight: 600; text-decoration: none; }
+.citation-item a:hover { color: var(--accent); text-decoration: underline; }
+.citation-score {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: .7rem;
+  color: var(--fg-soft);
+  margin-left: .5rem;
+}
+.citation-lesson { color: var(--fg-soft); font-size: .78rem; margin: .3rem 0 0; line-height: 1.5; }
+
 .corpus-section { padding: 0 2rem 4rem; }
 .corpus-wrap { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.4rem; }
 

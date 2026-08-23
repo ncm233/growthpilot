@@ -23,6 +23,21 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 def _startup():
     init_db()
 
+    # A fresh deploy (Zeabur, or anyone cloning this repo) has no LanceDB
+    # index yet — build it from the corpus on boot rather than requiring a
+    # manual `python -m app.rag.ingest` step first. Guarded: if this fails
+    # (RAG deps missing, SiliconFlow hiccup at boot), log and keep serving —
+    # retriever.search() already degrades to "unavailable" without an index,
+    # same graceful-degradation rule as everywhere else in this codebase.
+    try:
+        from .rag import ingest
+
+        ingest.main()
+    except Exception as e:  # noqa: BLE001
+        import logging
+
+        logging.getLogger(__name__).warning("RAG corpus ingest failed at startup, retrieval will degrade: %s", e)
+
 
 class RunRequest(BaseModel):
     goal: str

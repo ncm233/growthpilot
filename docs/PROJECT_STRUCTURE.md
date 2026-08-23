@@ -107,7 +107,15 @@ Phase 1–4 基本都做完了，但**不是每一项都完全按最初写的样
 | `app/skills/`（Markdown 增长打法） | **没做**。`experiment_agent` 现在是规则驱动，没有任何代码会读取 skill 文件，加了也是没人用的装饰性文件。见 [HARNESS_DESIGN.md](HARNESS_DESIGN.md) 第五节 |
 | `HARNESS_DESIGN.md` | ✅ 已完成，但结论跟最初设想不同——文档核心发现是"Reflect 循环在当前确定性链路里结构性不可达"，而不是简单地把代码映射到论文框架 |
 
-`assets/`（架构图、Demo GIF、Langfuse trace 截图）留给 Phase 5，跟部署放在一起做才有意义。
+## Phase 5 进度
+
+| 项 | 状态 |
+|---|---|
+| 架构图 | ✅ Mermaid，直接内嵌 README（GitHub 原生渲染，不用维护单独的 svg 文件） |
+| Demo GIF | ✅ `assets/demo.gif`，Playwright 驱动真实浏览器录制（不是截图拼接），10 帧完整走一遍目标输入→RAG 检索引用→Critic→模拟→审批→案例库 |
+| 一个顺带修复的 UI 缺口 | 录 GIF 时发现 `app.js` 从来没渲染过 `opportunity.citations`/`experiment.citations`——RAG 检索结果一直只在叙述文本里带一句摘要，没有结构化展示。加了 `citationsBlock()`，现在能看到可点击跳转真实来源的引用卡片 |
+| 部署配置 | ✅ `Procfile` / `.python-version` / `docs/DEPLOYMENT.md`；自动在 startup 建 LanceDB 索引（`app/main.py`，容器重启不需要手动 ingest） |
+| Zeabur 实际部署 | 🔨 进行中 |
 
 ---
 

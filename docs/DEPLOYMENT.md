@@ -1,5 +1,7 @@
 # 部署（Render，不是最初计划的 Zeabur）
 
+**已上线并实测验证：[growthpilot-6zl2.onrender.com](https://growthpilot-6zl2.onrender.com)**
+
 ## 为什么中途从 Zeabur 换成了 Render
 
 [TECH_STACK.md](TECH_STACK.md) 里最初选型是 Zeabur，理由是"中国网络访问友好 + 免费额度够用"。
@@ -60,17 +62,21 @@ Render 没有像 Zeabur 那样能被第三方 CLI 完全自动化操作的接口
 项目要展示的核心工程能力是 RAG 检索，MockLLM 的模板化叙述已经足够让整条链路可读、可演示，
 且零成本零延迟；换成真实 LLM 只是让文字更"自然"，边际价值不如把 SiliconFlow 的真实检索效果亮出来。
 
-## 部署前自检（本地已验证过的行为，部署后要复测一遍）
+## 部署后实测结果（已验证，不是自检清单了）
 
-- [ ] `app/main.py` 的 startup 事件会自动跑 `ingest.main()` 建 LanceDB 索引——**本地用一个全新
-      `data/lancedb` 目录测过，8 条种子案例能正确入库**，但没有在真实 Render 容器里验证过路径解析
-      是否一致（`store.py`/`main.py` 里那几个 `os.path.dirname(...)` 相对路径计算，是按照
-      "以 `apps/agent-service` 为运行根目录"设计的，`rootDir` 配置应该能保证这一致，但**没有
-      100% 把握**，部署后第一件事就是测 `/api/corpus` 和 `/api/run` 里有没有 citations）
-- [ ] `growthpilot.db`（SQLite）是容器本地文件，**没配持久化卷，每次重新部署数据会清空**——
-      对一个 Demo 项目这是可接受的取舍，面试时可以主动说清楚
-- [ ] 免费层容器 15 分钟无请求会休眠，**面试前务必先访问一次热身**，冷启动 30-60 秒
-- [ ] 确认 `/`、`/api/run`、`/api/corpus` 三个端点部署后都能正常访问
+真实部署到 `https://growthpilot-6zl2.onrender.com` 之后逐项测过：
+
+- [x] **`app/main.py` 的 startup 自动 ingest 在 Render 容器里正常工作**——`rootDir: apps/agent-service`
+      配置下，相对路径解析跟本地一致，`/api/corpus` 返回真实 8 条语料，之前"没有 100% 把握"的地方
+      现在confirmed 没问题
+- [x] **`/api/run` 端到端测过**：真实调用 SiliconFlow API，`opportunity.citations` 返回 3 条案例，
+      top1 score 0.88+，跟本地测试的检索质量一致
+- [x] **Langfuse trace 从生产环境正确上报**：生产请求的 trace 落到了跟本地开发/MCP Server 同一个
+      Langfuse 项目里，三个入口共用一套可观测性
+- [x] `growthpilot.db`（SQLite）是容器本地文件，没配持久化卷，每次重新部署数据会清空——
+      对一个 Demo 项目是可接受的取舍
+- [ ] 免费层容器 15 分钟无请求会休眠，**面试前务必先访问一次热身**，冷启动 30-60 秒（这条没法提前验证，
+      是长期要记住的使用注意事项）
 
 ## 已知限制（诚实写出来，别等面试官问）
 

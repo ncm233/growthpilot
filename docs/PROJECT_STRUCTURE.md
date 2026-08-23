@@ -116,7 +116,7 @@ Phase 1–4 基本都做完了，但**不是每一项都完全按最初写的样
 | 一个顺带修复的 UI 缺口 | 录 GIF 时发现 `app.js` 从来没渲染过 `opportunity.citations`/`experiment.citations`——RAG 检索结果一直只在叙述文本里带一句摘要，没有结构化展示。加了 `citationsBlock()`，现在能看到可点击跳转真实来源的引用卡片 |
 | 部署配置 | ✅ `render.yaml`（Blueprint）/ `Procfile` / `.python-version` / `docs/DEPLOYMENT.md`；自动在 startup 建 LanceDB 索引（`app/main.py`，容器重启不需要手动 ingest） |
 | 部署平台 | ⚠️ **中途从 Zeabur 换成了 Render**——真去部署时发现 Zeabur 已下线免费共享部署，最低 $3/月起；调研后换成真免费的 Render，完整过程见 [DEPLOYMENT.md](DEPLOYMENT.md) |
-| 实际部署 | 🔨 进行中 |
+| 实际部署 | ✅ **已上线**：[growthpilot-6zl2.onrender.com](https://growthpilot-6zl2.onrender.com)，`/api/corpus`、`/api/run`（真实 RAG 检索）、Langfuse trace 全部实测通过 |
 
 ---
 

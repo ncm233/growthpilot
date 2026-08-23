@@ -431,7 +431,7 @@ A：不是代码，是**决定哪些事不让 Agent 做**。
 
 ## 九、面试前 10 分钟检查清单
 
-- [ ] Zeabur Demo 链接能打开
+- [ ] Demo 链接能打开（`growthpilot-6zl2.onrender.com`，免费层会休眠，提前几分钟访问一次热身）
 - [ ] Claude Desktop 里 MCP Server 连接正常，随手调一次 `search_growth_playbook`
 - [ ] Langfuse 面板登录着，能展开一条完整 trace
 - [ ] GitHub 仓库 README 顶部 GIF 能正常播放
@@ -446,7 +446,7 @@ A：不是代码，是**决定哪些事不让 Agent 做**。
 ### 项目条目
 
 > **GrowthPilot｜自主增长实验 Agent（个人项目，开源已部署）**
-> `github.com/ncm233/growthpilot` ｜ Demo：见 Zeabur 部署链接
+> `github.com/ncm233/growthpilot` ｜ Demo：`growthpilot-6zl2.onrender.com`
 >
 > - 设计并实现 5 Agent 协作的增长实验 Agent：Plan→Tool Call→Verify→Reflect 主循环，
 >   独立 Critic Agent 校验预算约束与数字幻觉，人工审批作为任何接口（含 MCP）都无法绕过的强制边界
@@ -467,7 +467,8 @@ A：不是代码，是**决定哪些事不让 Agent 做**。
 > 项目里 6 个真实 bug 都是靠系统化测试（真实协议测试、对抗性用例、Langfuse trace）找到并修复的，
 > 不是设计出来演示的——这也是我最想在面试里讲清楚的部分：怎么验证一个 Agent 系统真的可靠。」
 
-### 待补：Zeabur 部署链接上线后
+### 部署链接已上线并验证过
 
-部署完成后回来把 Demo 链接补进这份文档、README 顶部、以及简历项目条目的第一行——
-现在先占位，**不要在简历投出去之前漏填**。
+`https://growthpilot-6zl2.onrender.com` ——实测过 `/api/corpus`（8 条语料）、`/api/run`（真实
+SiliconFlow 检索命中，score 0.88+）、Langfuse trace（生产请求的 trace 正确落到同一个项目里），
+不是"部署了但没验证"。**免费层 15 分钟无请求会休眠**，面试前务必先访问一次热身，见 [DEPLOYMENT.md](DEPLOYMENT.md)。

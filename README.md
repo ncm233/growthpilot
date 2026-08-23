@@ -2,6 +2,9 @@
 
 自主增长实验 Agent：给一个目标，它从数据里找机会点、生成实验假设、模拟排序、走人工审批，批准后写回原系统，并把结论存进长期记忆。
 
+**在线 Demo：[growthpilot-6zl2.onrender.com](https://growthpilot-6zl2.onrender.com)**
+（免费层，15 分钟无请求会休眠，冷启动 30-60 秒，打不开先等一下再刷新）
+
 面向中国企业场景：企业微信 / 飞书 / CRM / ERP / 表单 / 官网埋点，而不是 HubSpot + GA4 那一套海外栈。
 
 ![GrowthPilot Demo](assets/demo.gif)

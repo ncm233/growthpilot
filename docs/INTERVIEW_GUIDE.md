@@ -209,6 +209,24 @@ POST /runs/{id}/decide { decision: "approved" }
 - **代价**：单机、无并发写、数据量上万条以后检索延迟会涨。
   **生产化要换 Postgres + pgvector，但换的成本很低，因为 `app/rag/store.py` 是接口隔离的。**
 
+### 决策 #9：用 Langfuse 的语义化 `as_type`，不是所有 span 都叫 "span"
+
+- **决策**：`@observe(as_type=...)` 按角色打类型——Agent 用 `agent`、Critic 用 `guardrail`、
+  RAG 检索用 `retriever`、LLM 叙述用 `generation`、外部系统调用用 `tool`
+- **备选**：所有装饰都用默认的 `span`，靠 name 字段区分
+- **为什么**：Langfuse 后台按类型渲染不同图标和统计维度（比如 `generation` 会单独统计 token/成本，
+  `guardrail` 会在 UI 上高亮成校验节点），打对类型让 trace 树一眼能看出"这是谁在做什么"，
+  不用逐条点开看 name。这也逼着我在写代码时明确想清楚"这个函数到底是 Agent 决策、工具调用、
+  还是纯校验"，是一次有价值的架构复盘。
+- **代价**：几乎没有——多打一个参数的事。**唯一的代价是接上的第一天就看到了一个自己没意识到的
+  性能问题**（见下面这条），不算代价，算意外收获。
+- **接上当天就看到的真实发现**：跑一次真实 `/api/run`，Langfuse trace 显示单次请求 7.96 秒，
+  其中两次 RAG 检索（`opportunity_agent` 和 `experiment_agent` 各查一次真实 SiliconFlow API）
+  加起来占了 85% 以上（4.54s + 2.25s）。**这不是靠猜的优化方向，是数据直接指出来的**——
+  下一步应该把这两次检索用 `asyncio.gather` 并行化，或者给 embedding 结果按 query 文本加缓存。
+  面试可以直接讲：「接上可观测性当天就发现两次串行检索占了 85% 的耗时，这是我下一个要做的性能优化，
+  而且优先级排序不是靠猜，是 trace 数据告诉我的。」
+
 ---
 
 ## 五、数据与评估（最容易被问穿的一块，必须准备扎实）
@@ -231,7 +249,7 @@ POST /runs/{id}/decide { decision: "approved" }
 | **对抗性边界用例（7类28例）** | 精确预算边界、增长包装成流失、幽灵环节引用、1%级数字漂移等 | ✅ Adversarial 套件，见 [EVALUATION.md](EVALUATION.md) |
 | 模拟方向准确率 | 只看方向对不对，不看数值 | ✅ 已有，但要诚实说明这个指标接近重言式（见 EVALUATION.md） |
 | **检索 recall@k / MRR** | 20 题标注集（8 条语料，规模会随语料增长） | ✅ 已完成，见 [EVALUATION.md](EVALUATION.md) |
-| **工具调用成功率 / P95 延迟 / 单次成本** | Langfuse trace 统计 | 🔨 Phase 3 后半段 |
+| **工具调用成功率 / P95 延迟 / 单次成本** | Langfuse trace 统计 | ✅ 已完成，18 个 observation/请求，见下方 |
 
 ### 检索质量消融实验（真实数据，已完成）
 
@@ -328,7 +346,14 @@ A：`app/llm/` 里做了多供应商抽象，主力 DeepSeek、降级 GLM-4-Flas
 
 **Q：成本大概多少？**
 A：单次完整 run 大约 3–5 次 LLM 调用，DeepSeek 价格下约 ¥0.01–0.03。
-Embedding 和 rerank 全本地零成本。Phase 3 接了 Langfuse 之后有精确统计。
+Embedding/rerank 走 SiliconFlow 免费模型零成本。这不是估算，Langfuse trace 里能直接看到——
+接上之后发现单次请求 7.96 秒里，两次 RAG 检索占了 85% 以上，这个数字比"成本大概多少"更早被我注意到。
+
+**Q：为什么两次检索是串行的，不并行？**
+A：这是 Langfuse trace 帮我发现的问题，还没优化——`opportunity_agent` 和 `experiment_agent`
+各自独立调用 `retriever.search()`，目前是顺序执行。下一步会改成 `asyncio.gather` 并行发起，
+或者给 embedding 结果按 query 文本加缓存（同一批 Demo 数据里 `to_step` 只有几种取值，缓存命中率会很高）。
+我现在的判断优先级是先把这个改掉，因为它是 trace 数据显示的最大单项耗时来源。
 
 ### 关于你本人
 
@@ -361,6 +386,7 @@ A：不是代码，是**决定哪些事不让 Agent 做**。
 | **Mock 与 Real 无契约测试** | 仅靠抽象基类约束签名 | 加一组接口契约测试 |
 | **SQLite 单机** | 无并发写 | 迁 Postgres，接口已隔离 |
 | **串行工具调用** | `data_agent.gather()` 四个工具串行 | 改 asyncio 并发 |
+| **两次 RAG 检索串行，占单次请求 85%+ 耗时** | Langfuse trace 实测：7.96s 请求里 4.54s+2.25s 是检索 | `asyncio.gather` 并行，或按 query 文本加缓存 |
 | **无 LLM 熔断重试** | 只有配置层 fallback | 加指数退避 + 熔断 |
 | **固定流水线编排** | 无法动态重规划 | 复杂场景迁 LangGraph |
 | **真实 CRM/ERP 未接** | 个人拿不到企业授权 | 用飞书多维表格模拟，架构可插拔 |

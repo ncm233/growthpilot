@@ -1,3 +1,5 @@
+from langfuse import observe
+
 from .base import BaseLLM
 
 
@@ -6,6 +8,7 @@ class MockLLM(BaseLLM):
     Exists so the whole pipeline runs today; swap LLM_PROVIDER=openai_compatible
     (with LLM_BASE_URL / LLM_API_KEY) to route the same calls through a real model."""
 
+    @observe(as_type="generation", name="MockLLM.narrate")
     def narrate(self, task: str, context: dict) -> str:
         method = getattr(self, f"_{task}", None)
         if method is None:

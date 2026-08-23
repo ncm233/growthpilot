@@ -12,3 +12,8 @@ fastmcp>=2.0.0
 lancedb==0.15.0
 tantivy==0.22.0
 jieba==0.42.1
+
+# app.rag / app.agents / app.planner / app.llm all import `from langfuse
+# import observe` at module level now (Phase 3) — required even though this
+# package's own tools don't call Langfuse directly, or importing them fails.
+langfuse>=3.0.0

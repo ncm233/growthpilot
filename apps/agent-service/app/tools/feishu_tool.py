@@ -1,4 +1,5 @@
 import httpx
+from langfuse import observe
 
 from .. import config
 from ..db import get_conn, now
@@ -11,6 +12,7 @@ class MockFeishuTool(IMTool):
     dashboard instead of the real 飞书 approval UI. Same contract either way —
     the orchestrator never knows which one it's talking to."""
 
+    @observe(as_type="tool", name="FeishuTool.send_message")
     def send_message(self, target: str, text: str) -> dict:
         with get_conn() as conn:
             conn.execute(
@@ -19,10 +21,12 @@ class MockFeishuTool(IMTool):
             )
         return {"ok": True, "mode": "mock"}
 
+    @observe(as_type="tool", name="FeishuTool.create_approval")
     def create_approval(self, run_id: str, payload: dict) -> str:
         # run_id doubles as approval_id: the `runs.status` column IS the approval state.
         return run_id
 
+    @observe(as_type="tool", name="FeishuTool.get_approval_status")
     def get_approval_status(self, approval_id: str) -> str:
         with get_conn() as conn:
             row = conn.execute("SELECT status FROM runs WHERE id = ?", (approval_id,)).fetchone()
@@ -40,6 +44,7 @@ class RealFeishuTool(IMTool):
         self.app_secret = app_secret
         self.approval_code = approval_code
 
+    @observe(as_type="tool", name="FeishuTool._tenant_access_token")
     def _tenant_access_token(self) -> str:
         resp = httpx.post(
             "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
@@ -52,6 +57,7 @@ class RealFeishuTool(IMTool):
             raise RuntimeError(f"飞书 tenant_access_token 获取失败: {data}")
         return data["tenant_access_token"]
 
+    @observe(as_type="tool", name="RealFeishuTool.send_message")
     def send_message(self, target: str, text: str) -> dict:
         token = self._tenant_access_token()
         resp = httpx.post(
@@ -63,6 +69,7 @@ class RealFeishuTool(IMTool):
         resp.raise_for_status()
         return resp.json()
 
+    @observe(as_type="tool", name="RealFeishuTool.create_approval")
     def create_approval(self, run_id: str, payload: dict) -> str:
         if not self.approval_code:
             raise RuntimeError("FEISHU_APPROVAL_CODE 未配置：需先在飞书管理后台创建审批定义")
@@ -76,6 +83,7 @@ class RealFeishuTool(IMTool):
         resp.raise_for_status()
         return resp.json().get("data", {}).get("instance_code", run_id)
 
+    @observe(as_type="tool", name="RealFeishuTool.get_approval_status")
     def get_approval_status(self, approval_id: str) -> str:
         token = self._tenant_access_token()
         resp = httpx.get(

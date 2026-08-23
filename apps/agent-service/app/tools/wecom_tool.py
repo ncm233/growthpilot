@@ -1,4 +1,5 @@
 import httpx
+from langfuse import observe
 
 from .. import config
 from ..db import get_conn, now
@@ -10,6 +11,7 @@ class MockWecomTool(IMTool):
     instead of actually calling 企业微信, so the write-back step is still visible
     end-to-end in the dashboard."""
 
+    @observe(as_type="tool", name="WecomTool.send_message")
     def send_message(self, target: str, text: str) -> dict:
         with get_conn() as conn:
             conn.execute(
@@ -37,6 +39,7 @@ class RealWecomTool(IMTool):
         self.secret = secret
         self.agent_id = agent_id
 
+    @observe(as_type="tool", name="WecomTool._access_token")
     def _access_token(self) -> str:
         resp = httpx.get(
             "https://qyapi.weixin.qq.com/cgi-bin/gettoken",
@@ -49,6 +52,7 @@ class RealWecomTool(IMTool):
             raise RuntimeError(f"企业微信 gettoken 失败: {data}")
         return data["access_token"]
 
+    @observe(as_type="tool", name="RealWecomTool.send_message")
     def send_message(self, target: str, text: str) -> dict:
         token = self._access_token()
         resp = httpx.post(

@@ -1,9 +1,12 @@
 import json
 import uuid
 
+from langfuse import get_client, observe
+
 from ..agents import critic_agent, data_agent, experiment_agent, opportunity_agent, research_agent
 from ..db import get_conn, now, row_to_run
 from ..llm import get_llm
+from ..obs import tracing
 from ..simulation import simulator
 from ..tools import get_analytics_tool, get_crm_tool, get_erp_tool, get_feishu_tool, get_form_tool, get_wecom_tool
 
@@ -19,9 +22,19 @@ def _tools() -> dict:
     }
 
 
+@observe(as_type="agent", name="orchestrator.run_goal")
 def run_goal(goal_text: str, budget_limit: float) -> dict:
     """Plan -> Tool Call -> Verify -> Reflect, then hand off to a human approval
-    card instead of executing. This is the full pipeline behind one dashboard run."""
+    card instead of executing. This is the full pipeline behind one dashboard run.
+
+    This is the trace root for the whole Opportunity->Experiment->Critic->
+    Simulation chain — every @observe'd call inside (agents, tools, retriever,
+    LLM narration) nests under it automatically via Langfuse's context
+    propagation, no manual span plumbing needed. flush() at the end (not
+    inside the nested calls) because this is a request-scoped unit of work
+    that needs its trace to land before the caller — a FastAPI request, an
+    MCP tool call, an eval script — moves on; see app/obs/tracing.py."""
+    get_client().set_current_trace_io(input={"goal_text": goal_text, "budget_limit": budget_limit})
     llm = get_llm()
     tools = _tools()
 
@@ -78,12 +91,15 @@ def run_goal(goal_text: str, budget_limit: float) -> dict:
             ),
         )
         row = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
+    tracing.flush()
     return row_to_run(row)
 
 
+@observe(as_type="agent", name="orchestrator.decide")
 def decide(run_id: str, decision: str) -> dict:
     """Human approval closes the loop: on approve, write back to the source
     systems (form config, CRM tag) and notify via IM; on reject, just record it."""
+    get_client().set_current_trace_io(input={"run_id": run_id, "decision": decision})
     if decision not in ("approved", "rejected"):
         raise ValueError("decision must be 'approved' or 'rejected'")
 
@@ -93,6 +109,7 @@ def decide(run_id: str, decision: str) -> dict:
         raise KeyError(run_id)
     record = row_to_run(row)
     if record["status"] != "pending_approval":
+        tracing.flush()
         return record
 
     tools = _tools()
@@ -130,4 +147,5 @@ def decide(run_id: str, decision: str) -> dict:
             ),
         )
         row = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
+    tracing.flush()
     return row_to_run(row)

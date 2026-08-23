@@ -1,3 +1,5 @@
+from langfuse import observe
+
 from . import citations as citations_mod
 from . import store
 from .embedder import get_embedder
@@ -31,6 +33,7 @@ def _empty_result(reason: str) -> dict:
     return {"status": "unavailable", "reason": reason, "citations": [], "prompt_block": "（未找到可参考的历史案例）"}
 
 
+@observe(as_type="retriever")
 def search(query: str, top_k: int = 3, embedder=None, reranker=None) -> dict:
     """Hybrid search -> cross-encoder rerank -> CRAG-style grade -> citations.
     Never raises: any failure (RAG deps not installed, corpus not ingested

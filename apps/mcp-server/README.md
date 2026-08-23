@@ -37,8 +37,12 @@ SSE/HTTP 下完全正常）。HTTP 也正好是 Phase 5 部署到 Zeabur 需要�
 cd apps/mcp-server
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\pip install lancedb==0.15.0 tantivy==0.22.0 jieba==0.42.1
+.venv\Scripts\pip install lancedb==0.15.0 tantivy==0.22.0 jieba==0.42.1 "langfuse>=3.0.0"
 ```
+
+（`langfuse` 是必需的，不是可选——`app.rag`/`app.agents`/`app.planner` 在 Phase 3 加了 `@observe`
+装饰器，模块顶层就 import 它，装不上这几个模块直接导入失败。工具调用会自动上报 trace 到
+agent-service `.env` 里配的同一个 Langfuse Project，不需要在这边单独配置。）
 
 启动（默认端口 8210，可用 `GROWTHPILOT_MCP_PORT` 环境变量改）：
 

@@ -13,7 +13,7 @@
 | 全文检索 | LanceDB 内置 FTS | 配合向量检索做混合召回（BM25 + dense） | — |
 | 业务数据库 | **SQLite**（保持不变） | 已有实现，单用户 Demo 场景够用 | 生产化 / 需要并发写时换 Postgres，`db.py` 是标准 SQL，迁移成本低 |
 | MCP 框架 | **FastMCP (Python)**，**HTTP transport**（非 STDIO） | 官方推荐的高层封装，`@mcp.tool` 装饰器几行代码定义工具；transport 选择见下方实测记录 | — |
-| 可观测性 | **Langfuse Cloud**（免费版） | 硬约束：无 Docker，不自托管；免费额度（5 万 observations/月）够用 | — |
+| 可观测性 | **Langfuse Cloud**（免费版），`@observe` 装饰器打满全链路 | 硬约束：无 Docker，不自托管；免费额度（5 万 observations/月）够用 | — |
 | 部署 | **Zeabur** | 中国网络友好、支持 Python、支持持久化卷放 LanceDB；先把一个做扎实，比两个都做但都潦草强 | 如果 Zeabur 免费额度不够用，再加 HF Spaces 做备份 |
 
 ## Embedding / Reranker 三档对比
@@ -94,6 +94,29 @@ MCP Server 教程/模板默认几乎都是 STDIO transport（Claude Desktop 传�
 `mcp` 对象上跑的。Claude Desktop 会正常连上，只是看到的工具列表永远是空的，**不报任何错误**。
 标准修法：加一个 `__main__.py`，入口改成 `python -m growthpilot_mcp`（跑包本身，不是跑包里某个子模块），
 `server.py` 就只会被正常导入一次。
+
+### 真实数据验证：接上 Langfuse 立刻看到的一个真实问题
+
+`app/obs/tracing.py` + 每个 Agent/工具/LLM/检索函数上的 `@observe` 装饰器（用 Langfuse 语义化的
+`as_type`：Agent 用 `agent`、Critic 用 `guardrail`、检索用 `retriever`、LLM 叙述用 `generation`），
+接完后跑一次真实 `/api/run`，在 Langfuse 后台（用 REST API 拉取验证过，不是靠肉眼截图）看到完整
+18 个 observation 的嵌套树。**接上的当天就看到一个真实性能问题**：
+
+```
+AGENT orchestrator.run_goal        7.961s   ← 整个请求
+  AGENT find_opportunity           4.538s
+    RETRIEVER search               4.537s   ← 这一次检索占了 57% 的总耗时
+  AGENT design_experiment          2.254s
+    RETRIEVER search               2.251s   ← 第二次检索又占了 28%
+  （其余 Agent/工具调用全部 <0.02s）
+```
+
+两次 RAG 检索（`opportunity_agent` 和 `experiment_agent` 各查一次）加起来占了单次请求 **85% 以上**
+的耗时，而且都是真实的 SiliconFlow API 网络往返（embed + rerank 各一次 HTTP 请求）。这不是靠猜的
+优化方向，是 trace 数据直接指出来的。**下一步待办**（Phase 3 之后）：两次检索目前是串行的，可以
+用 `asyncio.gather` 并行发起；或者给 embedding 结果加一层基于 query 文本的缓存（同一个 `to_step`
+在同一批 Demo 里会被反复查询）。这个待办本身就是"接了可观测性之后能做什么"的直接例证，比抽象地说
+"我们做了可观测性"有说服力得多。
 
 ## 数据相关（明确的分阶段安排，不是待定）
 

@@ -1,6 +1,8 @@
 import hashlib
 import random
 
+from langfuse import observe
+
 from .base import AnalyticsTool
 
 
@@ -8,6 +10,7 @@ class MockAnalyticsTool(AnalyticsTool):
     """Stands in for 神策数据 / GrowingIO / 自建埋点+ClickHouse.
     Generates a seeded (reproducible per metric_name), plausible signup funnel."""
 
+    @observe(as_type="tool", name="AnalyticsTool.get_funnel")
     def get_funnel(self, metric_name: str) -> list[dict]:
         seed = int(hashlib.sha256(metric_name.encode()).hexdigest(), 16) % (2**32)
         rng = random.Random(seed)

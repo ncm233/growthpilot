@@ -1,3 +1,5 @@
+from langfuse import observe
+
 from .base import FormTool
 
 _FIELDS = [
@@ -14,9 +16,11 @@ _FIELDS = [
 class MockFormTool(FormTool):
     """Stands in for 金数据 / 腾讯问卷 / 自建表单系统."""
 
+    @observe(as_type="tool", name="FormTool.get_fields")
     def get_fields(self, form_id: str) -> list[dict]:
         return [dict(f) for f in _FIELDS]
 
+    @observe(as_type="tool", name="FormTool.update_fields")
     def update_fields(self, form_id: str, field_ids: list[str]) -> dict:
         # Real impl: PUT https://jinshuju.net/api/v1/forms/{form_id}/fields with API token
         return {"ok": True, "form_id": form_id, "fields": field_ids}

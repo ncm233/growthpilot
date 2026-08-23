@@ -1,8 +1,11 @@
 import re
 
+from langfuse import observe
+
 GOAL_PATTERN = re.compile(r"(?P<metric>.+?)从\s*([\d.]+)%\s*(?:提到|提升到|到)\s*(?P<target>[\d.]+)%")
 
 
+@observe(as_type="agent")
 def extract_goal(goal_text: str) -> dict:
     """Turns free-text goals like '把创作者注册转化率从 3.4% 提到 5%' into structured
     parameters the rest of the pipeline can act on. Falls back to a generic metric

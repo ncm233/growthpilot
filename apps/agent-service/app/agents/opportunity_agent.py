@@ -1,6 +1,9 @@
+from langfuse import observe
+
 from ..rag import retriever
 
 
+@observe(as_type="agent")
 def find_opportunity(raw_data: dict, llm) -> dict:
     """Deterministic: scans the funnel for the single largest step-to-step drop.
     The LLM is only asked to narrate this after the fact — it never picks the step.

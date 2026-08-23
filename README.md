@@ -41,6 +41,13 @@ python -m uvicorn app.main:app --reload --port 8000
 RAG 检索层同理是三档可插拔（Mock / SiliconFlow 托管 API / 本地 bge），`.env` 里 `EMBEDDER_PROVIDER`
 / `RERANKER_PROVIDER` 切换，见 [docs/TECH_STACK.md](docs/TECH_STACK.md)。
 
+## 可观测性
+
+全链路 `@observe` 打点（[Langfuse](https://cloud.langfuse.com) 免费版，`.env` 填 `LANGFUSE_PUBLIC_KEY`
+/ `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL` 即可，不填就静默不 trace，不影响业务逻辑）。
+接上当天就用真实 trace 数据发现了一个性能问题——两次 RAG 检索占了单次请求 85% 以上的耗时，
+详见 [docs/TECH_STACK.md](docs/TECH_STACK.md)。
+
 ## MCP Server
 
 把检索和数据能力暴露成标准 MCP 工具，Claude Desktop / Cursor 等客户端可直接调用：

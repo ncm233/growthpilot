@@ -1,5 +1,7 @@
 import random
 
+from langfuse import observe
+
 from .base import ERPTool
 
 
@@ -8,6 +10,7 @@ class MockERPTool(ERPTool):
     demo yet, but wired into the architecture for when Opportunity Agent needs
     order/revenue context (e.g. paid-plan conversion experiments)."""
 
+    @observe(as_type="tool", name="ERPTool.get_order_stats")
     def get_order_stats(self) -> dict:
         rng = random.Random(3)
         return {

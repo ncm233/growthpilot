@@ -2,7 +2,10 @@ import random
 import statistics
 import zlib
 
+from langfuse import observe
 
+
+@observe(as_type="tool")
 def run(run_id: str, opportunity: dict, experiment: dict, llm, n_personas: int = 500) -> dict:
     """AgentA/B-style pre-flight simulation: NOT a prediction of the real effect
     size, only a direction + confidence signal used to rank experiment ideas before

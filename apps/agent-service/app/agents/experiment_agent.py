@@ -1,6 +1,9 @@
+from langfuse import observe
+
 from ..rag import retriever
 
 
+@observe(as_type="agent")
 def design_experiment(opportunity: dict, raw_data: dict, budget_limit: float, llm) -> dict:
     """Builds a concrete A/B proposal. Every number in the returned dict is either
     copied from raw_data or computed from it — nothing is invented, so Critic Agent

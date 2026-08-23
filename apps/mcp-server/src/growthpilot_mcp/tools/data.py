@@ -16,6 +16,7 @@ def fetch_growth_data(metric_name: str = "signup_conversion") -> dict:
         {"funnel": [...], "form_fields": [...], "segments": [...], "erp": {...}}
     """
     from app.agents import data_agent
+    from app.obs import tracing
     from app.tools import get_analytics_tool, get_crm_tool, get_erp_tool, get_form_tool
 
     tools = {
@@ -24,4 +25,6 @@ def fetch_growth_data(metric_name: str = "signup_conversion") -> dict:
         "crm": get_crm_tool(),
         "erp": get_erp_tool(),
     }
-    return data_agent.gather(metric_name, tools)
+    result = data_agent.gather(metric_name, tools)
+    tracing.flush()
+    return result

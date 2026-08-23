@@ -20,6 +20,9 @@ def search_growth_playbook(query: str, top_k: int = 3) -> dict:
         status 为 "wrong" 或 "unavailable" 时 citations 为空，代表没有找到足够相关的案例，
         不代表报错。
     """
+    from app.obs import tracing
     from app.rag import retriever
 
-    return retriever.search(query, top_k=top_k)
+    result = retriever.search(query, top_k=top_k)
+    tracing.flush()  # MCP tool calls are their own request-scoped unit of work, same as orchestrator entrypoints
+    return result

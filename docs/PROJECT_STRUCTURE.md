@@ -34,8 +34,10 @@ GrowthOps Agent/
 │           │   ├── reranker.py           #   三档：MockReranker / SiliconFlowReranker / BgeReranker(本地交叉编码器)
 │           │   ├── store.py              #   LanceDB 封装：建表/重建/混合检索(向量+FTS, RRF融合)
 │           │   ├── ingest.py             #   CLI：读 corpus jsonl → embed → 分词 → 建索引
-│           │   ├── retriever.py          #   编排：混合检索→重排→CRAG分级(correct/ambiguous/wrong)→降级兜底
+│           │   ├── retriever.py          #   编排：混合检索→重排→CRAG分级(correct/ambiguous/wrong)→降级兜底，@observe(as_type="retriever")
 │           │   └── citations.py          #   格式化成 prompt 文本块 + 结构化引用列表
+│           ├── obs/                      # ✅ 可观测层（Phase 3 已完成）
+│           │   └── tracing.py            #   flush() 封装；@observe 直接在各 agents/tools/llm/rag 文件里用
 │           ├── tools/                    # 6 个外部系统工具，Mock/Real 双实现
 │           │   ├── base.py               # 工具抽象基类
 │           │   ├── analytics_tool.py     # 埋点行为数据
@@ -101,9 +103,7 @@ GrowthOps Agent/
 ├── apps/
 │   ├── agent-service/
 │   │   └── app/
-│   │       ├── （以上全部保留，含 ✅ rag/，见上方「一」）
-│   │       ├── obs/                      # [Phase 3] 可观测性
-│   │       │   └── tracing.py            #   Langfuse 装饰器与 span 封装
+│   │       ├── （以上全部保留，含 ✅ rag/ 和 ✅ obs/，见上方「一」）
 │   │       └── skills/                   # [Phase 4] Markdown 定义的可复用增长打法
 │   │           ├── seo-longtail.md
 │   │           └── cold-start-community.md
@@ -144,8 +144,8 @@ GrowthOps Agent/
 | 5 | 记忆层 | `db.py` 的 `memory` 表 | 结构化存 hypothesis/channel/result/confidence/lesson，避免全上下文塞 Prompt | ✅ 已实现（SQLite） |
 | 6 | 模拟层 | `app/simulation/` | Persona 模拟预测实验方向与置信度，做优先级排序 | ✅ 已实现 |
 | 7 | 审批与写回层 | `orchestrator.decide()` + `feishu_tool` / `wecom_tool` | 审批卡片 → 人工确认 → 写回表单/CRM → IM 通知 | ✅ 已实现 |
-| 8 | 评估层 | `packages/eval/` | 验证不编造指标、不违反预算约束；Phase 3 增加检索评测与消融 | ✅ 已实现，🔨 Phase 3 强化 |
-| 9 | 可观测层 | `app/obs/` | Langfuse 全链路 tracing：检索命中、工具成功率、延迟、成本 | 🔨 Phase 3 |
+| 8 | 评估层 | `packages/eval/` | Critic Baseline+Adversarial 双套件（找到并修复 2 个真实 bug）+ 检索质量消融 | ✅ 已实现，见 [EVALUATION.md](EVALUATION.md) |
+| 9 | 可观测层 | `app/obs/` | Langfuse 全链路 tracing：18 个 observation/请求，语义化类型(agent/tool/retriever/generation/guardrail) | ✅ 已实现，见 [TECH_STACK.md](TECH_STACK.md) 里接上当天发现的真实延迟问题 |
 
 ---
 

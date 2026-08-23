@@ -1,3 +1,7 @@
+from langfuse import observe
+
+
+@observe(as_type="tool")
 def gather(metric_name: str, tools: dict) -> dict:
     """Calls the MCP-style tool layer and returns raw structured data.
     Nothing here is narrated or interpreted — that's Opportunity/Experiment Agent's

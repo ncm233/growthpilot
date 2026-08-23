@@ -1,3 +1,7 @@
+from langfuse import observe
+
+
+@observe(as_type="guardrail")
 def review(opportunity: dict, experiment: dict, raw_data: dict, budget_limit: float) -> dict:
     """Independent verification pass, separate from the agents that generated the
     proposal. Two checks map directly to the two eval metrics in packages/eval:

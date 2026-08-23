@@ -1,6 +1,7 @@
 import json
 
 import httpx
+from langfuse import get_client, observe
 
 from .base import BaseLLM
 
@@ -29,6 +30,7 @@ class OpenAICompatibleLLM(BaseLLM):
         self.api_key = api_key
         self.model = model
 
+    @observe(as_type="generation", name="OpenAICompatibleLLM.narrate")
     def narrate(self, task: str, context: dict) -> str:
         prompt_template = TASK_PROMPTS.get(task, "请描述以下数据：\n{context}")
         prompt = prompt_template.format(context=json.dumps(context, ensure_ascii=False))
@@ -43,4 +45,14 @@ class OpenAICompatibleLLM(BaseLLM):
             timeout=30.0,
         )
         resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"].strip()
+        body = resp.json()
+        usage = body.get("usage", {})
+        get_client().update_current_generation(
+            model=self.model,
+            usage_details={
+                "input": usage.get("prompt_tokens"),
+                "output": usage.get("completion_tokens"),
+                "total": usage.get("total_tokens"),
+            },
+        )
+        return body["choices"][0]["message"]["content"].strip()

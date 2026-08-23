@@ -1,0 +1,14 @@
+# This package imports app.rag / app.agents / app.planner / app.db from
+# apps/agent-service directly (see src/growthpilot_mcp/_bootstrap.py), so it
+# needs some of that package's dependencies too — but NOT fastapi/uvicorn/
+# jinja2, which mcp-server never imports (those live only in app/main.py).
+#
+# Deliberately its OWN venv, not agent-service's: fastmcp's MCP SDK pulls a
+# starlette/uvicorn/python-dotenv line that's incompatible with agent-
+# service's pinned fastapi==0.115.0 (confirmed by trying it — see git log).
+# httpx and python-dotenv below are already satisfied transitively by
+# fastmcp at compatible-enough versions; only these three need adding:
+fastmcp>=2.0.0
+lancedb==0.15.0
+tantivy==0.22.0
+jieba==0.42.1

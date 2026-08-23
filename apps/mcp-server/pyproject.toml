@@ -1,0 +1,11 @@
+[project]
+name = "growthpilot-mcp"
+version = "0.1.0"
+description = "MCP server exposing GrowthPilot's RAG playbook search and experiment-proposal tools to any MCP client (Claude Desktop, Cursor, etc.)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -7,7 +7,10 @@
 详细文档：
 - [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) — 目录结构与分层职责
 - [docs/API_AND_MATERIALS.md](docs/API_AND_MATERIALS.md) — API 清单与接入优先级
+- [docs/TECH_STACK.md](docs/TECH_STACK.md) — 技术选型记录，含真实 A/B 测试数据和踩坑记录
 - [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) — 分阶段路线图（早期规划稿）
+- [docs/INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md) — 面试讲解稿
+- [apps/mcp-server/README.md](apps/mcp-server/README.md) — MCP Server 工具清单与设计边界
 
 ## 当前实现状态
 
@@ -35,6 +38,24 @@ python -m uvicorn app.main:app --reload --port 8000
 
 要接真实 LLM / 企业微信 / 飞书：复制 `apps/agent-service/.env.example` 为 `.env`，填入密钥即可，无需改代码。
 
+RAG 检索层同理是三档可插拔（Mock / SiliconFlow 托管 API / 本地 bge），`.env` 里 `EMBEDDER_PROVIDER`
+/ `RERANKER_PROVIDER` 切换，见 [docs/TECH_STACK.md](docs/TECH_STACK.md)。
+
+## MCP Server
+
+把检索和数据能力暴露成标准 MCP 工具，Claude Desktop / Cursor 等客户端可直接调用：
+
+```bash
+cd apps/mcp-server
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\pip install lancedb==0.15.0 tantivy==0.22.0 jieba==0.42.1
+run.bat
+```
+
+详见 [apps/mcp-server/README.md](apps/mcp-server/README.md)——包括为什么是独立 venv、
+为什么是 HTTP transport 而不是更常见的 STDIO（一个真实挂死 bug 的排查记录）。
+
 ## 跑 Eval
 
 ```bash
@@ -48,7 +69,9 @@ python benchmarks.py                # 跑 Critic / Simulation 的基准测试，
 ## 目录
 
 ```
-apps/agent-service/   FastAPI 后端：agents / tools / llm / simulation / planner / dashboard
+apps/agent-service/   FastAPI 后端：agents / tools / llm / rag / simulation / planner / dashboard
+apps/mcp-server/       MCP Server：把检索与数据工具暴露给 Claude Desktop 等 MCP 客户端
 packages/eval/         合成数据生成 + 基准测试
-docs/                   架构、API 清单、开发计划、面试指南
+packages/corpus/       RAG 语料（增长案例知识库）
+docs/                   架构、API 清单、技术选型、开发计划、面试指南
 ```

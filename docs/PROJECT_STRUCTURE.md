@@ -65,6 +65,20 @@ GrowthOps Agent/
 │   ├── API_AND_MATERIALS.md              # API 申请清单 + 物料清单
 │   └── INTERVIEW_GUIDE.md                # 面试讲解稿
 │
+├── apps/mcp-server/                      # ✅ MCP 暴露层（Phase 2 已完成）
+│   ├── README.md                         #   工具清单、设计边界、独立venv/HTTP transport的原因
+│   ├── pyproject.toml
+│   ├── requirements.txt
+│   ├── run.bat                           #   本地启动（HTTP，默认端口 8210）
+│   └── src/growthpilot_mcp/
+│       ├── __main__.py                   #   python -m growthpilot_mcp 的入口（见下方踩坑记录）
+│       ├── _bootstrap.py                 #   sys.path 注入，import agent-service 的 app 包
+│       ├── server.py                     #   FastMCP 实例 + HTTP transport 启动
+│       └── tools/
+│           ├── playbook.py               #   search_growth_playbook
+│           ├── data.py                   #   fetch_growth_data
+│           └── experiment.py             #   propose_experiment / get_experiment_status（无 decide）
+│
 └── README.md
 ```
 
@@ -90,14 +104,7 @@ GrowthOps Agent/
 │   │           ├── seo-longtail.md
 │   │           └── cold-start-community.md
 │   │
-│   └── mcp-server/                       # [Phase 2] MCP 暴露层
-│       ├── pyproject.toml                #   fastmcp>=2.0.0
-│       └── src/growthpilot_mcp/
-│           ├── server.py
-│           └── tools/
-│               ├── playbook.py           #   search_growth_playbook（复用 app/rag）
-│               ├── data.py               #   fetch_form_leads / fetch_crm_pipeline
-│               └── experiment.py         #   propose_experiment / simulate_experiment
+│   └── mcp-server/                       # ✅ 已实现，见上方「一」，结构和最初规划基本一致
 │
 ├── packages/
 │   ├── corpus/                           # 语料原始素材 ✅ 已有 8 条种子；检索管线仍是 [Phase 1]
@@ -128,7 +135,7 @@ GrowthOps Agent/
 |---|---|---|---|---|
 | 1 | 工具/数据接入层 | `app/tools/` | 6 个外部系统统一封装成可调用工具，Mock/Real 可插拔 | ✅ 已实现 |
 | 2 | 检索增强层 | `app/rag/`（管线）/ `packages/corpus/`（语料） | 历史实验与公开增长案例的混合检索，为假设生成提供事实依据 | ✅ **已实现**（语料 8 条种子，管线 Mock/SiliconFlow/本地 bge 三档，已接入 opportunity_agent + experiment_agent） |
-| 3 | MCP 暴露层 | `apps/mcp-server/` | 把工具层与检索层暴露为标准 MCP 工具，任意 MCP 客户端可直连 | 🔨 Phase 2 |
+| 3 | MCP 暴露层 | `apps/mcp-server/` | 把工具层与检索层暴露为标准 MCP 工具，任意 MCP 客户端可直连；决策层动作（审批/写回）刻意不暴露 | ✅ 已实现（HTTP transport，独立 venv，见其 README） |
 | 4 | Agent 核心层 | `app/agents/`, `app/planner/` | 5 个专职 Agent + Plan→Tool→Verify→Reflect 主循环 | ✅ 已实现 |
 | 5 | 记忆层 | `db.py` 的 `memory` 表 | 结构化存 hypothesis/channel/result/confidence/lesson，避免全上下文塞 Prompt | ✅ 已实现（SQLite） |
 | 6 | 模拟层 | `app/simulation/` | Persona 模拟预测实验方向与置信度，做优先级排序 | ✅ 已实现 |

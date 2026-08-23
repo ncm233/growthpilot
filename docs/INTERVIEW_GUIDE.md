@@ -133,13 +133,28 @@ POST /runs/{id}/decide { decision: "approved" }
 
 ### 决策 #3：把工具层暴露为 MCP Server，而不是只做 HTTP API
 
-- **决策**：用 FastMCP 把检索和数据工具封装成标准 MCP 工具
+- **决策**：用 FastMCP 把检索和数据工具封装成标准 MCP 工具（`search_growth_playbook` / `fetch_growth_data` /
+  `propose_experiment` / `get_experiment_status`），独立 venv、HTTP transport
 - **备选**：只提供 REST API / 只做 LangChain Tool
 - **为什么**：MCP 在 2026 年已经是事实标准（Anthropic 捐给 Linux Foundation 的 Agentic AI Foundation 三大支柱之一）。
   做成 MCP 意味着 Claude Desktop、Cursor、任何 MCP 客户端都能直接接入，
   而不是只有我自己的前端能用。**对企业客户来说，这意味着他们现有的 AI 工具链能直接复用我的能力。**
-- **代价**：MCP 的 stdio 传输在多租户场景下不好用，要上 SSE/HTTP 传输；
-  且 MCP 协议本身还在快速演进，有版本兼容风险。
+- **代价（都是实测出来的，不是纸上谈兵）**：
+  1. **独立 venv**：`fastmcp` 需要的 `starlette`/`uvicorn` 版本区间跟 agent-service 锁定的
+     `fastapi==0.115.0` 直接冲突，装进同一个 venv 会当场把 FastAPI 服务弄坏（实测复现过）。
+     两个 venv 是唯一干净的解法，代价是要多维护一套依赖。
+  2. **HTTP transport 而非更常见的 STDIO**：真实子进程 + 真实协议测试发现，任何调用
+     LanceDB（Rust/tokio 后端）的工具在 STDIO transport 下会**永久挂死**，换成 HTTP 瞬间返回。
+     这跟 MCP Python SDK 仓库报告过的一类已知问题吻合。没有深挖 Rust/Python 双运行时冲突的根因，
+     直接换 transport——HTTP 本来也是 Phase 5 部署需要的东西。
+  3. 顺带踩到一个更隐蔽的坑：`python -m pkg.server` + 跨文件 `@mcp.tool`（`from ..server import mcp`）
+     会导致 Python 把 `server.py` 导入两次（一次绑定成 `__main__`，一次通过相对导入正常导入），
+     工具注册到了"空气"那份 `mcp` 对象上，`mcp.run()` 却跑在另一份空的实例上——**客户端连得上，
+     工具列表永远是空的，不报任何错误**。改成 `python -m pkg`（走 `__main__.py`）才解决。
+  完整排查过程见 [docs/TECH_STACK.md](TECH_STACK.md)。
+- **面试话术**：「我一开始按最常见的教程用 STDIO transport，写完在 in-process 单元测试里全部通过，
+  但我特意又用真实子进程 + 真实 JSON-RPC 协议测了一遍——这才发现 STDIO 下 LanceDB 调用会挂死。
+  只测函数调用，不测真实协议，这个坑我不会发现。」
 
 ### 决策 #4：混合检索 + 交叉编码器重排，而不是纯向量检索
 

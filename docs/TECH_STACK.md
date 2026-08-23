@@ -12,7 +12,7 @@
 | 向量库 | **LanceDB**（嵌入式） | `pip install` 直接用，硬约束：本机无 Docker；原生支持混合检索 RRF 融合 | 数据量上万条、需要多机并发写时换 Postgres+pgvector |
 | 全文检索 | LanceDB 内置 FTS | 配合向量检索做混合召回（BM25 + dense） | — |
 | 业务数据库 | **SQLite**（保持不变） | 已有实现，单用户 Demo 场景够用 | 生产化 / 需要并发写时换 Postgres，`db.py` 是标准 SQL，迁移成本低 |
-| MCP 框架 | **FastMCP (Python)** | 官方推荐的高层封装，`@mcp.tool` 装饰器几行代码定义工具 | — |
+| MCP 框架 | **FastMCP (Python)**，**HTTP transport**（非 STDIO） | 官方推荐的高层封装，`@mcp.tool` 装饰器几行代码定义工具；transport 选择见下方实测记录 | — |
 | 可观测性 | **Langfuse Cloud**（免费版） | 硬约束：无 Docker，不自托管；免费额度（5 万 observations/月）够用 | — |
 | 部署 | **Zeabur** | 中国网络友好、支持 Python、支持持久化卷放 LanceDB；先把一个做扎实，比两个都做但都潦草强 | 如果 Zeabur 免费额度不够用，再加 HF Spaces 做备份 |
 
@@ -58,6 +58,42 @@
 **真正的原因不是"自然语言更好"，而是 query 和语料的文本风格要匹配。** 本项目语料的 `search_text` 字段本身是 `scene+hypothesis+intervention+lesson` 拼接的短句、关键词密集，不是对话式问句；query 越像语料自己的写法，检索分数越高，跟"是否像自然语言"关系不大。最终 `opportunity_agent.py` 采用 `f"{to_step}转化流失"`——短、不依赖硬编码业务假设、且是系统测试里除了手工挑选的"场景风格"外分数最高的通用写法。
 
 **这个发现比"选对了"更值钱**：它证明了技术选型不是查文档定下来的，是自己用真实数据测出来的，第一次假设错了，测出来之后改了判断——这正是面试官想看到的工程判断过程，而不是背答案。
+
+### 真实数据验证：MCP Server 为什么用 HTTP transport 而不是 STDIO（一个真实挂死的 bug）
+
+MCP Server 教程/模板默认几乎都是 STDIO transport（Claude Desktop 传统接入方式也是命令行拉起子进程）。
+实现 `apps/mcp-server` 时，用**真实子进程 + 真实 JSON-RPC 协议**测试（不是只测 in-process 函数调用）
+发现：任何调用 LanceDB 的工具，在 STDIO transport 下**永久挂死**，同一个调用换成 HTTP transport
+瞬间返回。排查过程：
+
+| 排查步骤 | 结果 |
+|---|---|
+| 用 fastmcp 自带的 Client 而非独立 `mcp` 包测试 | 排除客户端库版本不匹配 |
+| 加 `PYTHONUTF8=1` 强制编码 | 排除编码问题 |
+| 最小复现：单文件 FastMCP server，`-m` 直接跑脚本 | 正常 |
+| 最小复现：拆成 `server.py` + `tools/thing.py`（`from ..server import mcp` 跨文件模式），`-m pkg.server` 跑 | **复现了 `tools discovered: []`**——这是另一个独立的坑，见下条 |
+| 加 `__main__.py`，改用 `python -m pkg` 而非 `python -m pkg.server` | 修好了工具注册问题（见下条说明） |
+| 工具注册修好后，实测调 `search_growth_playbook`（内部会连 LanceDB） | 挂死，30s/90s 超时都不返回 |
+| 单独测同一 venv 下裸 `httpx.post()` 调 SiliconFlow API | 1.5s 正常返回，排除防火墙/网络问题 |
+| 单独测 FastMCP 工具内 `httpx` 调用（sync 和 async 都测） | 都正常，排除 httpx |
+| 单独测 FastMCP 工具内只调 `store.get_table()`（纯 LanceDB，不碰 httpx） | **复现挂死**，精确定位到 LanceDB |
+| 同一个 LanceDB 调用，把 transport 从 stdio 换成 http | **瞬间返回**，问题解决 |
+
+**结论**：LanceDB 底层是 Rust/tokio 异步运行时，FastMCP 的 STDIO transport 在这台 Windows 环境下
+和它存在某种事件循环冲突，会导致调用挂死。这跟 MCP Python SDK 仓库里报告过的一类问题吻合
+（stdio 下某些阻塞调用挂起，SSE/HTTP 下正常）。没有继续深挖 Rust/Python 双运行时内部的根因——
+性价比不高，而且 HTTP transport 本来就是 Phase 5 部署到 Zeabur 需要的东西，不是额外成本。
+
+### 一个顺带发现的独立 bug：`python -m pkg.server` + 跨文件 `@mcp.tool` 会导致工具注册到"空气"里
+
+`tools/*.py` 里用 `from ..server import mcp` 拿到 FastMCP 实例再 `@mcp.tool` 注册，这是 FastMCP 官方
+推荐的多文件组织方式。但如果入口是 `python -m growthpilot_mcp.server`（直接把这个文件当 `__main__`
+跑），Python 会把它绑定成 `sys.modules['__main__']`；而 `tools/thing.py` 的相对导入 `from ..server import mcp`
+走的是正常导入路径，会**再导入一份 `growthpilot_mcp.server`**，产生两个独立的模块实例——
+`@mcp.tool` 把工具注册到了"正常导入"那份 `mcp` 对象上，而 `mcp.run()` 却是在 `__main__` 那份**空的**
+`mcp` 对象上跑的。Claude Desktop 会正常连上，只是看到的工具列表永远是空的，**不报任何错误**。
+标准修法：加一个 `__main__.py`，入口改成 `python -m growthpilot_mcp`（跑包本身，不是跑包里某个子模块），
+`server.py` 就只会被正常导入一次。
 
 ## 数据相关（明确的分阶段安排，不是待定）
 

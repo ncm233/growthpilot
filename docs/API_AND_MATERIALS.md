@@ -15,12 +15,13 @@
 
 | API / 组件 | 用途 | 💰 | ⏱ | 🔑 | 建议 |
 |---|---|---|---|---|---|
-| **BAAI/bge-small-zh-v1.5** | 中文向量嵌入 | 免费 | 无需申请 | ✅ | **首选**。本地跑，~100MB，pip 装 `sentence-transformers` 直接下载。零成本 + 「数据不出境」的故事 |
-| **BAAI/bge-reranker-base** | 检索结果重排 | 免费 | 无需申请 | ✅ | 本地跑，~1.1GB。效果提升最明显的一环 |
-| **LanceDB** | 嵌入式向量库 | 免费 | 无需申请 | ✅ | `pip install lancedb`，**无需 Docker**（你机器没装 Docker，这是硬约束） |
-| DashScope text-embedding-v3 | 云端嵌入（备选） | ¥0.0005/千 token | 1 天 | ✅ | 只在本地模型效果不够时启用，做 A/B 对比反而是加分素材 |
+| **硅基流动 API**（BAAI/bge-m3 + bge-reranker-v2-m3） | embedding + rerank，托管，已实测 | 免费额度 | 注册即用 | ✅ | **已采用为默认真实模式**，见 `EMBEDDER_PROVIDER=siliconflow`。不用下载模型，`httpx` 直接调，跟 `OpenAICompatibleLLM` 同一套调用方式 |
+| BAAI/bge-small-zh-v1.5（本地） | 中文向量嵌入，离线备选 | 免费 | 无需申请 | ✅ | 本地跑，~100MB，`pip install -r requirements-rag.txt`。断网/不想依赖第三方服务时用 |
+| BAAI/bge-reranker-base（本地） | 检索结果重排，离线备选 | 免费 | 无需申请 | ✅ | 本地跑，~1.1GB |
+| **LanceDB** | 嵌入式向量库 | 免费 | 无需申请 | ✅ | `pip install lancedb` + `tantivy`（FTS 索引依赖），**无需 Docker**（硬约束） |
 
 > ⚠️ **不要选 Milvus / Qdrant server / Elasticsearch** —— 都要 Docker，你环境跑不起来，部署也复杂。
+> 三档实现（Mock / SiliconFlow API / 本地 bge）的完整对比和真实检索质量数据见 [TECH_STACK.md](TECH_STACK.md)。
 
 ### Phase 1–5 必需 — LLM API
 

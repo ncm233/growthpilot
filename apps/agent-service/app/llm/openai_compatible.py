@@ -5,8 +5,16 @@ import httpx
 from .base import BaseLLM
 
 TASK_PROMPTS = {
-    "opportunity": "你是增长分析师。根据以下结构化漏斗数据，用一句中文说明流失最严重的环节，不要编造数据中没有的数字：\n{context}",
-    "experiment": "你是增长实验设计师。根据以下结构化实验参数，用中文写一段简短的实验说明，不要编造数据中没有的数字：\n{context}",
+    "opportunity": (
+        "你是增长分析师。根据以下结构化漏斗数据，用一句中文说明流失最严重的环节，"
+        "不要编造数据中没有的数字。如果 reference_cases 里有历史案例，可以简要引用作为参考，"
+        "但不要虚构 reference_cases 之外的案例或数字：\n{context}"
+    ),
+    "experiment": (
+        "你是增长实验设计师。根据以下结构化实验参数，用中文写一段简短的实验说明，"
+        "不要编造数据中没有的数字。如果 reference_cases 里有历史案例，可以简要引用作为参考，"
+        "但不要虚构 reference_cases 之外的案例或数字：\n{context}"
+    ),
     "simulation_summary": "你是数据分析师。根据以下模拟结果，用中文总结预期效果和置信度，并提醒这只是排序参考不是真实结果：\n{context}",
 }
 

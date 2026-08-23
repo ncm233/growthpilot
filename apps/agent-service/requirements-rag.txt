@@ -1,0 +1,7 @@
+# Optional: only needed for EMBEDDER_PROVIDER=bge / RERANKER_PROVIDER=bge.
+# Base requirements.txt (MockEmbedder + MockReranker) has zero ML deps and
+# runs the whole app instantly. Install this file to switch on real semantic
+# search — it pulls sentence-transformers + torch (CPU build on Windows),
+# and the bge models download from HuggingFace on first use (~100MB +
+# ~1.1GB).
+sentence-transformers==3.3.1

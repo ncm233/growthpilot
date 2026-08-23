@@ -29,6 +29,13 @@ GrowthOps Agent/
 │           ├── llm/                      # 双实现：MockLLM / OpenAICompatibleLLM
 │           │   ├── base.py               # 抽象接口
 │           │   └── __init__.py           # get_llm() 工厂，按 .env 自动切换
+│           ├── rag/                      # ✅ 检索增强层（Phase 1 已完成）
+│           │   ├── embedder.py           #   三档：MockEmbedder / SiliconFlowEmbedder(bge-m3 API) / BgeEmbedder(本地)
+│           │   ├── reranker.py           #   三档：MockReranker / SiliconFlowReranker / BgeReranker(本地交叉编码器)
+│           │   ├── store.py              #   LanceDB 封装：建表/重建/混合检索(向量+FTS, RRF融合)
+│           │   ├── ingest.py             #   CLI：读 corpus jsonl → embed → 分词 → 建索引
+│           │   ├── retriever.py          #   编排：混合检索→重排→CRAG分级(correct/ambiguous/wrong)→降级兜底
+│           │   └── citations.py          #   格式化成 prompt 文本块 + 结构化引用列表
 │           ├── tools/                    # 6 个外部系统工具，Mock/Real 双实现
 │           │   ├── base.py               # 工具抽象基类
 │           │   ├── analytics_tool.py     # 埋点行为数据
@@ -76,13 +83,7 @@ GrowthOps Agent/
 ├── apps/
 │   ├── agent-service/
 │   │   └── app/
-│   │       ├── （以上全部保留）
-│   │       ├── rag/                      # [Phase 1] 检索增强层
-│   │       │   ├── embedder.py           #   bge-small-zh 本地嵌入
-│   │       │   ├── store.py              #   LanceDB 嵌入式向量库封装
-│   │       │   ├── ingest.py             #   语料 → 清洗 → 分块 → 嵌入 → 落库
-│   │       │   ├── retriever.py          #   混合检索 → 重排 → CRAG 分级 → 兜底
-│   │       │   └── citations.py          #   引用拼装，返回出处
+│   │       ├── （以上全部保留，含 ✅ rag/，见上方「一」）
 │   │       ├── obs/                      # [Phase 3] 可观测性
 │   │       │   └── tracing.py            #   Langfuse 装饰器与 span 封装
 │   │       └── skills/                   # [Phase 4] Markdown 定义的可复用增长打法
@@ -126,7 +127,7 @@ GrowthOps Agent/
 | # | 层 | 目录 | 职责 | 状态 |
 |---|---|---|---|---|
 | 1 | 工具/数据接入层 | `app/tools/` | 6 个外部系统统一封装成可调用工具，Mock/Real 可插拔 | ✅ 已实现 |
-| 2 | 检索增强层 | `app/rag/`（管线）/ `packages/corpus/`（语料） | 历史实验与公开增长案例的混合检索，为假设生成提供事实依据 | 语料 ✅ 8 条种子，检索管线 🔨 Phase 1 |
+| 2 | 检索增强层 | `app/rag/`（管线）/ `packages/corpus/`（语料） | 历史实验与公开增长案例的混合检索，为假设生成提供事实依据 | ✅ **已实现**（语料 8 条种子，管线 Mock/SiliconFlow/本地 bge 三档，已接入 opportunity_agent + experiment_agent） |
 | 3 | MCP 暴露层 | `apps/mcp-server/` | 把工具层与检索层暴露为标准 MCP 工具，任意 MCP 客户端可直连 | 🔨 Phase 2 |
 | 4 | Agent 核心层 | `app/agents/`, `app/planner/` | 5 个专职 Agent + Plan→Tool→Verify→Reflect 主循环 | ✅ 已实现 |
 | 5 | 记忆层 | `db.py` 的 `memory` 表 | 结构化存 hypothesis/channel/result/confidence/lesson，避免全上下文塞 Prompt | ✅ 已实现（SQLite） |

@@ -13,18 +13,26 @@ class MockLLM(BaseLLM):
         return method(context)
 
     def _opportunity(self, c: dict) -> str:
-        return (
+        base = (
             f"在漏斗「{c['from_step']} → {c['to_step']}」环节发现明显流失："
             f"{c['from_users']} 个用户中只有 {c['to_users']} 个进入下一步，"
             f"流失率 {c['drop_rate']*100:.1f}%，是当前漏斗里流失最严重的一环。"
         )
+        return base + self._citation_suffix(c)
 
     def _experiment(self, c: dict) -> str:
-        return (
+        base = (
             f"假设：{c['hypothesis']}。"
             f"实验设计为 A/B 对照——A 组保持现状，B 组{c['variant_b_desc']}，"
             f"预计投入 ¥{c['proposed_budget']:.0f}（预算上限 ¥{c['budget_limit']:.0f}）。"
         )
+        return base + self._citation_suffix(c)
+
+    def _citation_suffix(self, c: dict) -> str:
+        ref = c.get("reference_cases")
+        if not ref or ref.startswith("（"):
+            return ""
+        return f" 参考历史案例：\n{ref}"
 
     def _simulation_summary(self, c: dict) -> str:
         return (

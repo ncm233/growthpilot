@@ -1,7 +1,11 @@
+from ..rag import retriever
+
+
 def design_experiment(opportunity: dict, raw_data: dict, budget_limit: float, llm) -> dict:
     """Builds a concrete A/B proposal. Every number in the returned dict is either
     copied from raw_data or computed from it — nothing is invented, so Critic Agent
-    can trace each claim back to a source."""
+    can trace each claim back to a source. RAG citations are attached the same way
+    as in opportunity_agent: they ground the narrative, not the numbers."""
 
     if opportunity["to_step"] == "提交表单":
         fields = raw_data["form_fields"]
@@ -56,6 +60,8 @@ def design_experiment(opportunity: dict, raw_data: dict, budget_limit: float, ll
             "budget_limit": budget_limit,
         }
 
+    rag_result = retriever.search(experiment["hypothesis"], top_k=3)
+    experiment["citations"] = rag_result["citations"]
     experiment["narrative"] = llm.narrate(
         "experiment",
         {
@@ -63,6 +69,7 @@ def design_experiment(opportunity: dict, raw_data: dict, budget_limit: float, ll
             "variant_b_desc": experiment["variant_b_desc"],
             "proposed_budget": experiment["proposed_budget"],
             "budget_limit": budget_limit,
+            "reference_cases": rag_result["prompt_block"],
         },
     )
     return experiment

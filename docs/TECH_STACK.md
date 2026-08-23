@@ -14,7 +14,7 @@
 | 业务数据库 | **SQLite**（保持不变） | 已有实现，单用户 Demo 场景够用 | 生产化 / 需要并发写时换 Postgres，`db.py` 是标准 SQL，迁移成本低 |
 | MCP 框架 | **FastMCP (Python)**，**HTTP transport**（非 STDIO） | 官方推荐的高层封装，`@mcp.tool` 装饰器几行代码定义工具；transport 选择见下方实测记录 | — |
 | 可观测性 | **Langfuse Cloud**（免费版），`@observe` 装饰器打满全链路 | 硬约束：无 Docker，不自托管；免费额度（5 万 observations/月）够用 | — |
-| 部署 | **Zeabur** | 中国网络友好、支持 Python、支持持久化卷放 LanceDB；先把一个做扎实，比两个都做但都潦草强 | 如果 Zeabur 免费额度不够用，再加 HF Spaces 做备份 |
+| 部署 | ~~Zeabur~~ → **Render** | Phase 5 真去部署时发现 Zeabur 已把免费共享部署下线（现在最低 $3/月起），临时调研切换到 Render（真免费、不用绑卡，代价是 15 分钟无请求会休眠）。完整过程见 [DEPLOYMENT.md](DEPLOYMENT.md) | — |
 
 ## Embedding / Reranker 三档对比
 

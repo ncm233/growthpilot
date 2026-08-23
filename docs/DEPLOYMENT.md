@@ -1,66 +1,92 @@
-# 部署（Zeabur）
+# 部署（Render，不是最初计划的 Zeabur）
 
-## 为什么是 Zeabur
+## 为什么中途从 Zeabur 换成了 Render
 
-无 Docker 硬约束下最省事的选择：中国网络访问友好、支持 Python（Nixpacks 自动识别）、
-免费额度够跑一个 Demo 级别的服务。见 [TECH_STACK.md](TECH_STACK.md) 的选型记录。
+[TECH_STACK.md](TECH_STACK.md) 里最初选型是 Zeabur，理由是"中国网络访问友好 + 免费额度够用"。
+**真去部署的时候发现这个判断已经过时了**：Zeabur 在这份文档写完之后把共享区域的免费 PaaS 部署
+整个下线了，现在 `zeabur project create` 会直接报错：
 
-## 服务配置
+```
+Shared clusters are deprecated. Please rent a Server and use server-XXXXXXXX as the region code.
+```
+
+也就是说现在必须先在 Zeabur 上**租一台 Dedicated Server**（最便宜的选项实测是腾讯云新加坡区，
+2 核 2G，$3/月）才能部署，不再有免费选项。这不是我最初判断错了——是平台商业模式在这份文档写完
+之后变了。**真去操作才发现这个变化，而不是继续依赖一份几周前写的选型文档，这个过程本身就值得记录。**
+
+比较了几个平台的当前真实条款（不是凭旧印象，逐个搜索验证过）：
+
+| 平台 | 免费层现状 | 是否要绑卡 |
+|---|---|---|
+| Zeabur | ❌ 已下线，现在最低 $3/月起 | 需要 |
+| Railway | 仅 30 天 $5 一次性试用，之后要付费 | 不需要（但试用期后要收费） |
+| Hugging Face Spaces | CPU 免费层真免费，但**跑 Docker Space 现在需要付费**——我们这个项目是 FastAPI（Docker 风格部署），不适用 | 不需要 |
+| **Render** | ✅ **真免费**，750 小时/月 Web Service 额度，无需信用卡 | **不需要** |
+
+最终选 Render。代价：免费层 15 分钟无请求会休眠，下次访问要等 30-60 秒冷启动——
+面试演示前记得先访问一次热身。
+
+## 部署方式：`render.yaml` Blueprint
+
+Render 没有像 Zeabur 那样能被第三方 CLI 完全自动化操作的接口，走的是**基础设施即代码**：
+仓库根目录的 [`render.yaml`](../render.yaml) 定义好服务配置，在 Render 网页上连一次 GitHub 账号、
+选这个仓库、点 "New Blueprint"，Render 读取 `render.yaml` 自动建服务，不用在网页上手动一项项填。
+
+### 你需要做的（这几步必须是你本人操作，涉及账号授权）
+
+1. 打开 [dashboard.render.com](https://dashboard.render.com)，用 GitHub 账号登录（免费，不用绑卡）
+2. 右上角 "New +" → "Blueprint"
+3. 选择 `ncm233/growthpilot` 这个仓库，Render 会自动检测到根目录的 `render.yaml`
+4. 会提示你填 4 个标了 `sync: false` 的密钥（`render.yaml` 里故意没写死，密钥不会进 git）：
+   - `SILICONFLOW_API_KEY`
+   - `LANGFUSE_PUBLIC_KEY`
+   - `LANGFUSE_SECRET_KEY`
+   - `LANGFUSE_BASE_URL`
+5. 确认创建，Render 会自动跑 `pip install -r requirements.txt` 然后启动服务
+
+### `render.yaml` 里已经配好的
 
 | 项 | 值 |
 |---|---|
-| Root Directory | `apps/agent-service` |
-| Start Command | 读 `Procfile`：`uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| Python 版本 | 3.11（`.python-version` 文件已锁定，lancedb/pyarrow 是版本相关的预编译 wheel，不能随便让平台选最新版） |
-| 依赖安装 | `requirements.txt`（已含 lancedb/tantivy/jieba/langfuse，见文件注释） |
+| 服务类型 | `type: web`, `runtime: python`, `plan: free` |
+| 区域 | `singapore`（离中国最近的免费区域选项） |
+| Root Directory | `apps/agent-service`（monorepo，只用这个子目录） |
+| 启动命令 | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Python 版本 | 3.11.9（跟 `.python-version` 一致，lancedb/pyarrow 是版本相关的预编译 wheel） |
+| `LLM_PROVIDER` | `mock`（免费零延迟，见下方说明） |
+| `EMBEDDER_PROVIDER` / `RERANKER_PROVIDER` | `siliconflow`（真实检索能力，这是项目要展示的核心） |
 
-## 环境变量
-
-跟本地 `.env` 一一对应，在 Zeabur 项目的 Variables 面板里配置：
-
-```
-LLM_PROVIDER=mock                    # 建议保持 mock：免费、零延迟、确定性叙述；
-                                      # 要接真实 LLM 才需要下面三行
-# LLM_BASE_URL=
-# LLM_API_KEY=
-# LLM_MODEL=deepseek-chat
-
-EMBEDDER_PROVIDER=siliconflow        # 建议设为真实模式，这是项目要展示的核心能力
-RERANKER_PROVIDER=siliconflow
-SILICONFLOW_API_KEY=<你的key>
-SILICONFLOW_EMBEDDING_MODEL=BAAI/bge-m3
-SILICONFLOW_RERANK_MODEL=BAAI/bge-reranker-v2-m3
-
-LANGFUSE_PUBLIC_KEY=<你的key>        # 可选，但强烈建议配上——面试官能看到真实 trace
-LANGFUSE_SECRET_KEY=<你的key>
-LANGFUSE_BASE_URL=<你注册时的区域地址>
-
-# 飞书/企业微信留空即可，走 Mock 实现，Dashboard 上审批按钮照常能点
-```
-
-**为什么 `LLM_PROVIDER` 建议保持 `mock`，而 `EMBEDDER_PROVIDER`/`RERANKER_PROVIDER` 建议用真实模式**：
-项目要展示的核心工程能力是 RAG 检索（embedding/rerank quality），MockLLM 的模板化叙述已经足够
-让整条链路可读、可演示，且零成本零延迟；换成真实 LLM 只是让文字更"自然"，边际价值不如把
-SiliconFlow 的真实检索效果亮出来。如果想要更好的叙述效果，可以自己加 DeepSeek key，成本很低
-（~¥0.01-0.03/次请求，见 [INTERVIEW_GUIDE.md](INTERVIEW_GUIDE.md)）。
+**为什么 `LLM_PROVIDER` 保持 `mock`，而 `EMBEDDER_PROVIDER`/`RERANKER_PROVIDER` 用真实模式**：
+项目要展示的核心工程能力是 RAG 检索，MockLLM 的模板化叙述已经足够让整条链路可读、可演示，
+且零成本零延迟；换成真实 LLM 只是让文字更"自然"，边际价值不如把 SiliconFlow 的真实检索效果亮出来。
 
 ## 部署前自检（本地已验证过的行为，部署后要复测一遍）
 
 - [ ] `app/main.py` 的 startup 事件会自动跑 `ingest.main()` 建 LanceDB 索引——**本地用一个全新
-      `data/lancedb` 目录测过，8 条种子案例能正确入库**，但没有在真实 Zeabur 容器里验证过路径解析
-      是否一致（容器内文件系统结构如果跟本地 `cd apps/agent-service` 跑起来不完全一样，
-      `store.py`/`main.py` 里那几个 `os.path.dirname(...)` 相对路径计算可能会跑偏）——
-      **这是唯一没有 100% 把握的部分，部署后第一件事就是测 `/api/corpus` 和 `/api/run` 里
-      有没有 citations**
+      `data/lancedb` 目录测过，8 条种子案例能正确入库**，但没有在真实 Render 容器里验证过路径解析
+      是否一致（`store.py`/`main.py` 里那几个 `os.path.dirname(...)` 相对路径计算，是按照
+      "以 `apps/agent-service` 为运行根目录"设计的，`rootDir` 配置应该能保证这一致，但**没有
+      100% 把握**，部署后第一件事就是测 `/api/corpus` 和 `/api/run` 里有没有 citations）
 - [ ] `growthpilot.db`（SQLite）是容器本地文件，**没配持久化卷，每次重新部署数据会清空**——
-      对一个 Demo 项目这是可接受的，展示的是"系统能跑通"而不是"历史数据不丢失"，
-      面试时可以主动说清楚这个取舍
-- [ ] 确认 `/` 首页、`/api/run`、`/api/corpus` 三个端点部署后都能正常访问
+      对一个 Demo 项目这是可接受的取舍，面试时可以主动说清楚
+- [ ] 免费层容器 15 分钟无请求会休眠，**面试前务必先访问一次热身**，冷启动 30-60 秒
+- [ ] 确认 `/`、`/api/run`、`/api/corpus` 三个端点部署后都能正常访问
 
 ## 已知限制（诚实写出来，别等面试官问）
 
 - 单实例，无横向扩展；SQLite 单机、无并发写——见 [INTERVIEW_GUIDE.md](INTERVIEW_GUIDE.md) 决策 #8
 - 没有配持久化存储，每次重新部署 `runs`/`memory` 表清空，LanceDB 索引会在 startup 时重建（幂等，不是 bug）
+- 免费层会休眠，不是生产级可用性——面试可以直接说"这是 Demo 级部署，生产化第一件事就是升级付费层去掉休眠"
 - MCP Server（`apps/mcp-server/`）**没有部署**——它是给本地 Claude Desktop 连的工具，
   部署一个公网可访问的 MCP Server 涉及额外的鉴权设计（谁能调用 `propose_experiment`），
   超出了这个 Demo 的范围，面试时可以说明这是刻意的范围控制而不是漏掉了
+
+## 面试话术：怎么讲这次平台切换
+
+> 「我最初技术选型定的是 Zeabur，理由是中国网络友好、免费额度够用。真去部署的时候发现
+> Zeabur 已经把免费共享部署下线了，现在必须先租服务器，最低也要 $3/月。我没有直接掏钱了事，
+> 而是重新调研了几个平台当前真实的免费层条款——不是凭记忆，是逐个去查最新文档——发现
+> Hugging Face Spaces 的免费 CPU 层虽然免费，但跑 Docker 类型的服务现在需要付费，不适合我们这个
+> FastAPI 项目；Railway 只有一次性 30 天试用；最后选了 Render，真免费、不用绑卡，代价是有冷启动。
+> 这个过程我觉得比选型本身更值得讲——技术选型文档会过时，平台条款会变，得在真正要用的时候
+> 重新验证一遍，不能一直依赖几周前写好的结论。」

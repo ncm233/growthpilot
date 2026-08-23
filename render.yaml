@@ -1,0 +1,32 @@
+services:
+  - name: growthpilot
+    type: web
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: apps/agent-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: LLM_PROVIDER
+        value: mock
+      - key: EMBEDDER_PROVIDER
+        value: siliconflow
+      - key: RERANKER_PROVIDER
+        value: siliconflow
+      - key: SILICONFLOW_EMBEDDING_MODEL
+        value: BAAI/bge-m3
+      - key: SILICONFLOW_RERANK_MODEL
+        value: BAAI/bge-reranker-v2-m3
+      # Secrets — left blank on purpose (sync: false), Render prompts for
+      # these during Blueprint creation instead of committing them here.
+      - key: SILICONFLOW_API_KEY
+        sync: false
+      - key: LANGFUSE_PUBLIC_KEY
+        sync: false
+      - key: LANGFUSE_SECRET_KEY
+        sync: false
+      - key: LANGFUSE_BASE_URL
+        sync: false

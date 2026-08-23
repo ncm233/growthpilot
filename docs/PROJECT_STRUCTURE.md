@@ -114,8 +114,9 @@ Phase 1–4 基本都做完了，但**不是每一项都完全按最初写的样
 | 架构图 | ✅ Mermaid，直接内嵌 README（GitHub 原生渲染，不用维护单独的 svg 文件） |
 | Demo GIF | ✅ `assets/demo.gif`，Playwright 驱动真实浏览器录制（不是截图拼接），10 帧完整走一遍目标输入→RAG 检索引用→Critic→模拟→审批→案例库 |
 | 一个顺带修复的 UI 缺口 | 录 GIF 时发现 `app.js` 从来没渲染过 `opportunity.citations`/`experiment.citations`——RAG 检索结果一直只在叙述文本里带一句摘要，没有结构化展示。加了 `citationsBlock()`，现在能看到可点击跳转真实来源的引用卡片 |
-| 部署配置 | ✅ `Procfile` / `.python-version` / `docs/DEPLOYMENT.md`；自动在 startup 建 LanceDB 索引（`app/main.py`，容器重启不需要手动 ingest） |
-| Zeabur 实际部署 | 🔨 进行中 |
+| 部署配置 | ✅ `render.yaml`（Blueprint）/ `Procfile` / `.python-version` / `docs/DEPLOYMENT.md`；自动在 startup 建 LanceDB 索引（`app/main.py`，容器重启不需要手动 ingest） |
+| 部署平台 | ⚠️ **中途从 Zeabur 换成了 Render**——真去部署时发现 Zeabur 已下线免费共享部署，最低 $3/月起；调研后换成真免费的 Render，完整过程见 [DEPLOYMENT.md](DEPLOYMENT.md) |
+| 实际部署 | 🔨 进行中 |
 
 ---
 

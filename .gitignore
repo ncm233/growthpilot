@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Env / secrets
+.env
+.env.local
+*.env
+!.env.example
+
+# SQLite
+*.db
+*.db-journal
+
+# Logs
+*.log
+
+# Vector store (Phase 1)
+data/lancedb/
+*.lance
+
+# Node (mcp-server / future web)
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

@@ -1,0 +1,8 @@
+{
+  "n_cases": 60,
+  "opportunity_detection_accuracy": 1.0,
+  "budget_constraint_catch_rate": 1.0,
+  "budget_constraint_false_positive_rate": 0.0,
+  "hallucination_catch_rate": 1.0,
+  "simulation_direction_accuracy": 1.0
+}

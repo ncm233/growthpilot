@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GrowthPilot Dashboard</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">GrowthPilot</div>
+    <div class="brand-sub">自主增长实验 Agent · 本地 Demo</div>
+  </header>
+
+  <main class="layout">
+    <section class="col-left">
+      <div class="card">
+        <h2>发起一次分析</h2>
+        <label>目标</label>
+        <input id="goal-input" type="text" value="把创作者注册转化率从 3.4% 提到 5%">
+        <label>预算上限（¥）</label>
+        <input id="budget-input" type="number" value="10000">
+        <button id="run-btn" class="btn-primary">开始分析</button>
+        <p id="run-status" class="hint"></p>
+      </div>
+
+      <div class="card">
+        <h2>历史运行</h2>
+        <div id="runs-list" class="list"></div>
+      </div>
+    </section>
+
+    <section class="col-right">
+      <div id="detail" class="card detail-empty">
+        <p class="hint">从左侧发起一次分析，或点击一条历史运行查看详情。</p>
+      </div>
+
+      <div class="card">
+        <h2>Experiment Memory</h2>
+        <div id="memory-list" class="list"></div>
+      </div>
+
+      <div class="card">
+        <h2>通知日志（企业微信 / 飞书 Mock）</h2>
+        <div id="notif-list" class="list mono-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <section class="corpus-section">
+    <div class="corpus-wrap">
+      <div class="card">
+        <h2>案例库（RAG 语料，来自 packages/corpus/curated）</h2>
+        <p class="hint">每条都经过核实，点标题跳转到原始出处；标"二手引用"的数字未必是一手数据，讲解时要带上这层保留。</p>
+        <div id="corpus-list" class="corpus-grid"></div>
+      </div>
+
+      <div class="card">
+        <h2>数据集与案例来源（继续扩充语料时用）</h2>
+        <p class="hint">全部链接已核实可打开，完整版见 <code class="inline">docs/CORPUS_SOURCES.md</code>。</p>
+        <div class="source-cols">
+          <div>
+            <h3>案例库</h3>
+            <ul class="link-list">
+              <li><a href="https://goodui.org/datastories/" target="_blank" rel="noopener">GoodUI Data Stories</a> — 26 篇详细案例，会员区 600+ 测试</li>
+              <li><a href="https://goodui.org/patterns/" target="_blank" rel="noopener">GoodUI Patterns</a> — 141 个模式，基于 635 次测试</li>
+              <li><a href="https://growthhackers.com/category/growth-studies/" target="_blank" rel="noopener">GrowthHackers Growth Studies</a></li>
+              <li><a href="https://www.optimizely.com/insights/" target="_blank" rel="noopener">Optimizely Insights Blog</a></li>
+              <li><a href="https://blog.hubspot.com/marketing/a-b-testing-experiments-examples" target="_blank" rel="noopener">HubSpot：11 个 A/B 测试案例</a></li>
+              <li><a href="https://www.yunyingpai.com/data/460331.html" target="_blank" rel="noopener">人人都是产品经理：18 个用户增长案例（中文）</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3>结构化数据集（Kaggle）</h3>
+            <ul class="link-list">
+              <li><a href="https://www.kaggle.com/datasets/faviovaz/marketing-ab-testing" target="_blank" rel="noopener">Marketing A/B Testing</a> — 58.8 万行真实实验数据，优先接入</li>
+              <li><a href="https://www.kaggle.com/datasets/alinaboulsi/digital-marketing-performance-dataset" target="_blank" rel="noopener">Digital Marketing Performance Dataset</a> — 当前 eval 用的合成数据结构对齐这份</li>
+              <li><a href="https://www.kaggle.com/datasets/madislemsalu/facebook-ad-campaign" target="_blank" rel="noopener">Facebook Ad Campaign</a></li>
+              <li><a href="https://www.kaggle.com/datasets/loveall/clicks-conversion-tracking" target="_blank" rel="noopener">Sales Conversion Optimization</a></li>
+              <li><a href="https://www.kaggle.com/datasets/rahulchavan99/marketing-campaign-dataset" target="_blank" rel="noopener">Marketing Campaign Dataset</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

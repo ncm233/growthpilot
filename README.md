@@ -8,6 +8,7 @@
 - [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) — 目录结构与分层职责
 - [docs/API_AND_MATERIALS.md](docs/API_AND_MATERIALS.md) — API 清单与接入优先级
 - [docs/TECH_STACK.md](docs/TECH_STACK.md) — 技术选型记录，含真实 A/B 测试数据和踩坑记录
+- [docs/HARNESS_DESIGN.md](docs/HARNESS_DESIGN.md) — 三层 harness 架构对齐 *Code as Agent Harness* 论文，含一个诚实的架构发现
 - [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) — 分阶段路线图（早期规划稿）
 - [docs/INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md) — 面试讲解稿
 - [apps/mcp-server/README.md](apps/mcp-server/README.md) — MCP Server 工具清单与设计边界

@@ -53,6 +53,19 @@ class SiliconFlowEmbedder(BaseEmbedder):
 
     dim = 1024  # bge-m3 output dim; informational only, not schema-enforced
 
+    # Process-lifetime cache, module-level (not per-instance): a fresh
+    # SiliconFlowEmbedder is constructed on every retriever.search() call
+    # (get_embedder() reads config each time), so an instance-level cache
+    # would never see a repeat hit. Keyed by (model, text) because a query
+    # string's embedding is a pure function of the model — nothing else
+    # varies it. Found via Langfuse tracing (Phase 3): this same query text
+    # repeats verbatim across identical demo runs, since the funnel data is
+    # deterministically seeded per metric_name — see docs/HARNESS_DESIGN.md
+    # for the before/after latency this produced.
+    _query_cache: dict[tuple[str, str], list[float]] = {}
+    cache_hits = 0
+    cache_misses = 0
+
     def __init__(self, api_key: str, model: str = "BAAI/bge-m3"):
         self.api_key = api_key
         self.model = model
@@ -73,7 +86,15 @@ class SiliconFlowEmbedder(BaseEmbedder):
         return [d["embedding"] for d in data]
 
     def embed_query(self, text: str) -> list[float]:
-        return self.embed([text])[0]
+        cache_key = (self.model, text)
+        cached = SiliconFlowEmbedder._query_cache.get(cache_key)
+        if cached is not None:
+            SiliconFlowEmbedder.cache_hits += 1
+            return cached
+        SiliconFlowEmbedder.cache_misses += 1
+        vec = self.embed([text])[0]
+        SiliconFlowEmbedder._query_cache[cache_key] = vec
+        return vec
 
 
 class BgeEmbedder(BaseEmbedder):

@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "apps", "
 
 from app.agents import critic_agent, opportunity_agent  # noqa: E402
 from app.llm.mock_llm import MockLLM  # noqa: E402
+from app.obs import tracing  # noqa: E402
 from app.simulation import simulator  # noqa: E402
 
 N_BASELINE_CASES = 60
@@ -272,6 +273,12 @@ def run():
 
     print(json.dumps(report, ensure_ascii=False, indent=2))
     print(f"\nwrote {out_path}")
+
+    # 88 cases each call @observe'd functions (critic_agent.review is a
+    # guardrail span per case) — flush explicitly rather than let the
+    # process exit race Langfuse's background exporter, which is what
+    # produced a "Failed to export span batch" warning before this was added.
+    tracing.flush()
 
 
 if __name__ == "__main__":

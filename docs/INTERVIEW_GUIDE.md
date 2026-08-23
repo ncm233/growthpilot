@@ -223,9 +223,27 @@ POST /runs/{id}/decide { decision: "approved" }
 - **接上当天就看到的真实发现**：跑一次真实 `/api/run`，Langfuse trace 显示单次请求 7.96 秒，
   其中两次 RAG 检索（`opportunity_agent` 和 `experiment_agent` 各查一次真实 SiliconFlow API）
   加起来占了 85% 以上（4.54s + 2.25s）。**这不是靠猜的优化方向，是数据直接指出来的**——
-  下一步应该把这两次检索用 `asyncio.gather` 并行化，或者给 embedding 结果按 query 文本加缓存。
-  面试可以直接讲：「接上可观测性当天就发现两次串行检索占了 85% 的耗时，这是我下一个要做的性能优化，
-  而且优先级排序不是靠猜，是 trace 数据告诉我的。」
+  Phase 4 已经把这个问题修掉，见决策 #10。
+
+### 决策 #10：给 embedding/rerank 加进程级缓存，不是把两次检索并行化
+
+- **决策**：`SiliconFlowEmbedder.embed_query()` 和 `SiliconFlowReranker.rerank()` 各自加一个
+  模块级缓存 dict，key 分别是 `(model, text)` 和 `(model, query, top_k, 候选id集合)`
+- **备选（一开始以为该这么做，后来发现不成立）**：用 `asyncio.gather` 把两次检索并行化
+- **为什么不是并行化**：`experiment_agent` 的检索 query 是从 `opportunity_agent` 的输出里构造出来的
+  （`experiment["hypothesis"]` 引用了 `opportunity['from_step']`/`to_step`），两次检索之间是真正的
+  **数据依赖**，不是两个独立任务，`asyncio.gather` 用不上。这是先分析依赖关系、发现最初设想的方案
+  站不住脚，然后换了真正可行的方案——不是「加了并行就当作优化交差」。
+- **为什么缓存能生效**：Demo 数据是按 `metric_name` 确定性播种生成的，同一个目标反复跑，
+  检索 query 文本完全一样。缓存对这个场景是精准命中，不是碰运气的优化。
+- **实测效果**：冷启动 5.416s → 缓存命中 0.032s，**降低 99.4%**。用 Langfuse 自己接的 tracing
+  基础设施验证了自己的优化——发现问题靠 trace，验证修复也靠 trace，是个完整闭环。
+- **代价 / 边界**：只对 SiliconFlow 这两个走真实网络的实现加了缓存，Mock/本地 bge 没加
+  （本来就够快，加缓存没有意义）。缓存是进程内存，没有过期策略——query embedding 缓存本身没有
+  失效风险（同一个 query 文本的向量在同一个模型下永远不变，跟语料库内容无关）；但 rerank 缓存的
+  key 包含候选案例的 id 集合，如果**语料库里某条已有 id 的内容被编辑过**（而不是新增新 id），
+  重排缓存会返回基于旧内容算出的分数，这是一个已知但目前不影响 Demo 的边界情况——
+  语料扩充的工作流是追加新 id，不是原地编辑，实际触发概率很低。
 
 ---
 

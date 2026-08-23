@@ -24,6 +24,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "apps", "agent-service"))
 
+from app.obs import tracing  # noqa: E402
 from app.rag import retriever, store  # noqa: E402
 from app.rag.embedder import MockEmbedder, SiliconFlowEmbedder  # noqa: E402
 from app.rag.ingest import _search_text, load_corpus  # noqa: E402
@@ -150,6 +151,8 @@ def main():
     if config.SILICONFLOW_API_KEY:
         ingest_with(SiliconFlowEmbedder(config.SILICONFLOW_API_KEY, config.SILICONFLOW_EMBEDDING_MODEL))
         print("re-ingested with real embedder (leaving index in production config)")
+
+    tracing.flush()
 
 
 if __name__ == "__main__":

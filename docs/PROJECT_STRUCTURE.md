@@ -67,6 +67,7 @@ GrowthOps Agent/
 │   ├── CORPUS_SOURCES.md                 # 语料/数据集来源链接清单（全部已核实）
 │   ├── TECH_STACK.md                     # 技术选型记录，含真实 A/B 测试数据和踩坑记录
 │   ├── EVALUATION.md                     # ✅ Phase 3：评测方法论、结果、发现并修复的真实 bug
+│   ├── HARNESS_DESIGN.md                 # ✅ Phase 4：三层 harness 架构对齐论文 + Reflect 结构性不可达的发现
 │   ├── DEVELOPMENT_PLAN.md               # 分阶段路线图
 │   ├── API_AND_MATERIALS.md              # API 申请清单 + 物料清单
 │   └── INTERVIEW_GUIDE.md                # 面试讲解稿
@@ -96,40 +97,17 @@ Agent 代码永远只面向抽象接口编程，**接不接真实系统，业务
 
 ---
 
-## 二、目标结构（Phase 1–5 完成后）
+## 二、Phase 0–4 完成情况 vs. 最初规划
 
-```
-GrowthOps Agent/
-├── apps/
-│   ├── agent-service/
-│   │   └── app/
-│   │       ├── （以上全部保留，含 ✅ rag/ 和 ✅ obs/，见上方「一」）
-│   │       └── skills/                   # [Phase 4] Markdown 定义的可复用增长打法
-│   │           ├── seo-longtail.md
-│   │           └── cold-start-community.md
-│   │
-│   └── mcp-server/                       # ✅ 已实现，见上方「一」，结构和最初规划基本一致
-│
-├── packages/
-│   ├── corpus/                           # 语料原始素材 ✅ 已有 8 条种子；检索管线仍是 [Phase 1]
-│   │   ├── raw/                          #   待转录草稿
-│   │   ├── curated/                      #   ✅ seed_cases.jsonl（8 条已核实案例）
-│   │   └── SCHEMA.md                     #   ✅ 语料字段定义
-│   └── eval/
-│       ├── （以上保留）
-│       ├── retrieval_testset.jsonl       # [Phase 3] 50 题检索标注集
-│       └── ablation.py                   # [Phase 3] 四组消融对比
-│
-├── docs/
-│   ├── （以上全部保留）
-│   ├── HARNESS_DESIGN.md                 # [Phase 4] 三层 harness 设计，对齐论文
-│   └── EVALUATION.md                     # [Phase 3] 评测方法与消融结果
-│
-└── assets/                               # [Phase 5] 展示物料
-    ├── architecture.svg
-    ├── demo.gif
-    └── langfuse-trace.png
-```
+Phase 1–4 基本都做完了，但**不是每一项都完全按最初写的样子实现**——这本身就是诚实记录的一部分：
+
+| 最初计划 | 实际情况 |
+|---|---|
+| `packages/eval/retrieval_testset.jsonl` + `ablation.py` | 实现为 `retrieval_eval.py` 里内联的 `TESTSET` 常量 + 输出 `retrieval_report.json`，没有拆成独立文件——20 题规模下拆文件是过度设计 |
+| `app/skills/`（Markdown 增长打法） | **没做**。`experiment_agent` 现在是规则驱动，没有任何代码会读取 skill 文件，加了也是没人用的装饰性文件。见 [HARNESS_DESIGN.md](HARNESS_DESIGN.md) 第五节 |
+| `HARNESS_DESIGN.md` | ✅ 已完成，但结论跟最初设想不同——文档核心发现是"Reflect 循环在当前确定性链路里结构性不可达"，而不是简单地把代码映射到论文框架 |
+
+`assets/`（架构图、Demo GIF、Langfuse trace 截图）留给 Phase 5，跟部署放在一起做才有意义。
 
 ---
 
@@ -140,12 +118,13 @@ GrowthOps Agent/
 | 1 | 工具/数据接入层 | `app/tools/` | 6 个外部系统统一封装成可调用工具，Mock/Real 可插拔 | ✅ 已实现 |
 | 2 | 检索增强层 | `app/rag/`（管线）/ `packages/corpus/`（语料） | 历史实验与公开增长案例的混合检索，为假设生成提供事实依据 | ✅ **已实现**（语料 8 条种子，管线 Mock/SiliconFlow/本地 bge 三档，已接入 opportunity_agent + experiment_agent） |
 | 3 | MCP 暴露层 | `apps/mcp-server/` | 把工具层与检索层暴露为标准 MCP 工具，任意 MCP 客户端可直连；决策层动作（审批/写回）刻意不暴露 | ✅ 已实现（HTTP transport，独立 venv，见其 README） |
-| 4 | Agent 核心层 | `app/agents/`, `app/planner/` | 5 个专职 Agent + Plan→Tool→Verify→Reflect 主循环 | ✅ 已实现 |
+| 4 | Agent 核心层 | `app/agents/`, `app/planner/` | 5 个专职 Agent + Plan→Tool→Verify→Reflect 主循环 | ✅ 已实现，但 Verify→Reflect 在当前确定性生成逻辑下结构性不可达，见 [HARNESS_DESIGN.md](HARNESS_DESIGN.md) |
 | 5 | 记忆层 | `db.py` 的 `memory` 表 | 结构化存 hypothesis/channel/result/confidence/lesson，避免全上下文塞 Prompt | ✅ 已实现（SQLite） |
 | 6 | 模拟层 | `app/simulation/` | Persona 模拟预测实验方向与置信度，做优先级排序 | ✅ 已实现 |
 | 7 | 审批与写回层 | `orchestrator.decide()` + `feishu_tool` / `wecom_tool` | 审批卡片 → 人工确认 → 写回表单/CRM → IM 通知 | ✅ 已实现 |
 | 8 | 评估层 | `packages/eval/` | Critic Baseline+Adversarial 双套件（找到并修复 2 个真实 bug）+ 检索质量消融 | ✅ 已实现，见 [EVALUATION.md](EVALUATION.md) |
 | 9 | 可观测层 | `app/obs/` | Langfuse 全链路 tracing：18 个 observation/请求，语义化类型(agent/tool/retriever/generation/guardrail) | ✅ 已实现，见 [TECH_STACK.md](TECH_STACK.md) 里接上当天发现的真实延迟问题 |
+| 10 | Harness 架构文档 | `docs/HARNESS_DESIGN.md` | 三层框架（Interface/Mechanism/Scaling）对齐 *Code as Agent Harness* 论文，含 Reflect 结构性不可达的诚实发现 | ✅ 已实现（Phase 4） |
 
 ---
 
@@ -158,12 +137,13 @@ POST /runs  { goal_text, budget_limit }
 orchestrator.run_goal()
       │
       ├─ research_agent.extract_goal(goal_text)        自然语言 → {metric_name, target}
-      ├─ data_agent.gather(metric_name, tools)         并行调 analytics/form/crm/erp → 漏斗
+      ├─ data_agent.gather(metric_name, tools)         串行调 analytics/form/crm/erp → 漏斗（已知待优化项，见 INTERVIEW_GUIDE.md 短板清单）
       ├─ opportunity_agent.find_opportunity(raw, llm)  定位最大流失环节
-      │      └─[Phase 1] rag.retriever.search()        检索相似历史案例，带引用注入 prompt
-      ├─ experiment_agent.design_experiment(...)       生成 A/B 方案 + 预算
-      ├─ critic_agent.review(...)                      ◄── 独立校验：预算 / 数字幻觉
-      │      └─ 不通过 → Reflect 回环重试（MAX_RETRIES=1）
+      │      └─ rag.retriever.search()                 检索相似历史案例，带引用注入 prompt（embed/rerank 带进程级缓存，命中时 <0.05s）
+      ├─ experiment_agent.design_experiment(...)       生成 A/B 方案 + 预算（proposed_budget 生成时已 clamp 到上限）
+      │      └─ rag.retriever.search()                 同上，检索命中同一个进程级缓存
+      ├─ critic_agent.review(...)                      ◄── 独立校验：预算 / 数字幻觉 / 流失方向
+      │      └─ 不通过 → Reflect 回环重试（MAX_RETRIES=1，当前确定性链路下结构性不可达，见 HARNESS_DESIGN.md）
       ├─ simulator.run(run_id, ...)                    Persona 模拟 → summary + confidence
       ├─ feishu.create_approval() + send_message()     生成审批卡片，推送给审批人
       └─ INSERT INTO runs (status = pending_approval)

@@ -32,6 +32,16 @@ class SiliconFlowReranker(BaseReranker):
     No local model download. See SiliconFlowEmbedder for the same tradeoff:
     zero-download convenience against depending on a third-party service."""
 
+    # Same caching rationale as SiliconFlowEmbedder._query_cache — module-
+    # level because a fresh instance is built per retriever.search() call.
+    # Keyed by (model, query, candidate id set): the reranker's output is a
+    # pure function of the query and which documents it's scoring against,
+    # not their input order — the LanceDB hybrid_search order upstream can
+    # vary run to run without changing what a cache hit should return.
+    _cache: dict[tuple, list[dict]] = {}
+    cache_hits = 0
+    cache_misses = 0
+
     def __init__(self, api_key: str, model: str = "BAAI/bge-reranker-v2-m3"):
         self.api_key = api_key
         self.model = model
@@ -40,6 +50,14 @@ class SiliconFlowReranker(BaseReranker):
     def rerank(self, query: str, candidates: list[dict], top_k: int) -> list[dict]:
         if not candidates:
             return []
+
+        cache_key = (self.model, query, top_k, tuple(sorted(c["id"] for c in candidates)))
+        cached = SiliconFlowReranker._cache.get(cache_key)
+        if cached is not None:
+            SiliconFlowReranker.cache_hits += 1
+            return cached
+        SiliconFlowReranker.cache_misses += 1
+
         import httpx
 
         docs = [c["search_text"] for c in candidates]
@@ -56,7 +74,8 @@ class SiliconFlowReranker(BaseReranker):
             c = dict(candidates[r["index"]])
             c["_rerank_score"] = r["relevance_score"]
             out.append(c)
-        return out[:top_k]
+        SiliconFlowReranker._cache[cache_key] = out
+        return out
 
 
 class BgeReranker(BaseReranker):

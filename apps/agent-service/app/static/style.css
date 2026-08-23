@@ -81,6 +81,18 @@ input[type=text], input[type=number] {
   cursor: pointer;
 }
 .btn-primary { background: var(--accent); color: #fff; }
+.preset-goals { margin-top: .9rem; display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.preset-goals .hint { margin: 0 .3rem 0 0; width: 100%; }
+.preset-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: .3rem .7rem;
+  font-size: .76rem;
+  color: var(--fg-soft);
+  cursor: pointer;
+}
+.preset-btn:hover { border-color: var(--accent); color: var(--accent); }
 .btn-approve { background: var(--good); color: #fff; margin-right: .6rem; }
 .btn-reject { background: var(--warn); color: #fff; }
 .hint { color: var(--fg-soft); font-size: .82rem; margin-top: .6rem; }

@@ -400,11 +400,11 @@ A：不是代码，是**决定哪些事不让 Agent 做**。
 |---|---|---|
 | **对抗用例非穷举** | 已加 28 例边界测试并修了 2 个真 bug，但只覆盖读代码时能想到的边界（如只测了 `to_step` 缺失，没测 `from_step` 缺失） | 继续按同样方法论补类别，见 EVALUATION.md |
 | **检索测试集规模小** | 20 题对 8 条语料，CRAG 分级阈值只在小样本上验证过 | 语料补到 80-100 条时重新生成 50 题测试集，重新校准阈值 |
-| **Reflect 过于简化** | 只有确定性预算 clamp，重试 1 次 | 改成把 Critic issues 反馈给 experiment_agent 重生成 |
+| **Reflect 在当前确定性链路里结构性不可达** | `experiment_agent` 生成时预算已 clamp，Critic 唯一能拦的场景永远不会真的发生（Phase 4 读代码才发现，见 HARNESS_DESIGN.md） | 保留作防御性设计，未来 experiment_agent 变 LLM 驱动时才会真正生效 |
 | **Mock 与 Real 无契约测试** | 仅靠抽象基类约束签名 | 加一组接口契约测试 |
 | **SQLite 单机** | 无并发写 | 迁 Postgres，接口已隔离 |
-| **串行工具调用** | `data_agent.gather()` 四个工具串行 | 改 asyncio 并发 |
-| **两次 RAG 检索串行，占单次请求 85%+ 耗时** | Langfuse trace 实测：7.96s 请求里 4.54s+2.25s 是检索 | `asyncio.gather` 并行，或按 query 文本加缓存 |
+| **串行工具调用** | `data_agent.gather()` 四个工具串行 | 改 asyncio 并发（当前量级下影响很小，见下一条的教训——先分析依赖关系再决定要不要做） |
+| ~~两次 RAG 检索串行，占单次请求 85%+ 耗时~~ | **✅ Phase 4 已修复**——原计划的 `asyncio.gather` 并行化经分析后发现两次检索是真数据依赖，行不通；改用 embedding/rerank 进程级缓存，实测 6.359s→0.056s（检索部分，-99.1%） | — |
 | **无 LLM 熔断重试** | 只有配置层 fallback | 加指数退避 + 熔断 |
 | **固定流水线编排** | 无法动态重规划 | 复杂场景迁 LangGraph |
 | **真实 CRM/ERP 未接** | 个人拿不到企业授权 | 用飞书多维表格模拟，架构可插拔 |
@@ -431,10 +431,10 @@ A：不是代码，是**决定哪些事不让 Agent 做**。
 
 ## 九、面试前 10 分钟检查清单
 
-- [ ] Demo 链接能打开（Zeabur + HF Spaces 两个都试）
+- [ ] Zeabur Demo 链接能打开
 - [ ] Claude Desktop 里 MCP Server 连接正常，随手调一次 `search_growth_playbook`
 - [ ] Langfuse 面板登录着，能展开一条完整 trace
 - [ ] GitHub 仓库 README 顶部 GIF 能正常播放
 - [ ] `docs/EVALUATION.md` 的消融表打开备用
-- [ ] 三个预置 Demo 目标记熟，现场不要打字
+- [ ] Dashboard 左侧三个预置目标按钮试点一遍（创作者注册转化率 / 落地页注册率 / 邀请好友转化率），现场不用现打字
 - [ ] 短板清单挑好今天要主动讲的 2 条

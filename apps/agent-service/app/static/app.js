@@ -122,6 +122,12 @@ async function decide(id, decision) {
   showRun(id);
 }
 
+document.querySelectorAll(".preset-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.getElementById("goal-input").value = btn.dataset.goal;
+  });
+});
+
 document.getElementById("run-btn").addEventListener("click", async () => {
   const goal = document.getElementById("goal-input").value.trim();
   const budget = parseFloat(document.getElementById("budget-input").value);

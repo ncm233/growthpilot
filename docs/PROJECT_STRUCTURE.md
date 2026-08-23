@@ -49,11 +49,13 @@ GrowthOps Agent/
 │
 ├── packages/
 │   ├── eval/
-│   │   ├── generate_synthetic_data.py    # 合成 Digital Marketing Performance 风格数据
-│   │   ├── benchmarks.py                 # 基准测试，输出 report.json
+│   │   ├── generate_synthetic_data.py    # 合成 Digital Marketing Performance 风格数据（装饰性，当前评测未消费它，见下方说明）
+│   │   ├── benchmarks.py                 # ✅ Critic Baseline(60) + Adversarial(28) 双套件，输出 report.json
+│   │   ├── retrieval_eval.py             # ✅ Phase 3：RAG 检索质量消融（Mock/真实embed/真实embed+rerank），输出 retrieval_report.json
 │   │   ├── datasets/
-│   │   └── report.json                   # 最近一次评测结果
-│   └── corpus/                           # 增长案例语料（RAG 的原始素材，检索管线本身仍是 Phase 1）
+│   │   ├── report.json                   # 最近一次 Critic 评测结果
+│   │   └── retrieval_report.json         # 最近一次检索消融结果
+│   └── corpus/                           # 增长案例语料（RAG 的原始素材）
 │       ├── SCHEMA.md                     #   语料字段定义
 │       ├── curated/seed_cases.jsonl      #   8 条已核实种子语料（HubSpot/Bing/Google/Obama/Airbnb/Dropbox/Netflix/Expedia）
 │       └── raw/                          #   待转录的原始案例草稿（空，按需追加）
@@ -61,6 +63,8 @@ GrowthOps Agent/
 ├── docs/
 │   ├── PROJECT_STRUCTURE.md              # 本文件
 │   ├── CORPUS_SOURCES.md                 # 语料/数据集来源链接清单（全部已核实）
+│   ├── TECH_STACK.md                     # 技术选型记录，含真实 A/B 测试数据和踩坑记录
+│   ├── EVALUATION.md                     # ✅ Phase 3：评测方法论、结果、发现并修复的真实 bug
 │   ├── DEVELOPMENT_PLAN.md               # 分阶段路线图
 │   ├── API_AND_MATERIALS.md              # API 申请清单 + 物料清单
 │   └── INTERVIEW_GUIDE.md                # 面试讲解稿

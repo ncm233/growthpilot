@@ -1,0 +1,41 @@
+{
+  "mock_embed+mock_rerank": {
+    "n_queries": 20,
+    "mrr": 0.8625,
+    "recall@1": 0.75,
+    "recall@3": 0.95,
+    "recall@5": 1.0,
+    "status_counts": {
+      "correct": 20,
+      "ambiguous": 0,
+      "wrong": 0,
+      "unavailable": 0
+    }
+  },
+  "real_embed+mock_rerank": {
+    "n_queries": 20,
+    "mrr": 0.9417,
+    "recall@1": 0.9,
+    "recall@3": 1.0,
+    "recall@5": 1.0,
+    "status_counts": {
+      "correct": 20,
+      "ambiguous": 0,
+      "wrong": 0,
+      "unavailable": 0
+    }
+  },
+  "real_embed+real_rerank": {
+    "n_queries": 20,
+    "mrr": 0.9,
+    "recall@1": 0.9,
+    "recall@3": 0.9,
+    "recall@5": 0.9,
+    "status_counts": {
+      "correct": 16,
+      "ambiguous": 2,
+      "wrong": 2,
+      "unavailable": 0
+    }
+  }
+}

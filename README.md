@@ -59,12 +59,14 @@ run.bat
 ## 跑 Eval
 
 ```bash
-cd packages/eval
-python generate_synthetic_data.py   # 生成合成的 Digital Marketing Performance 数据集
-python benchmarks.py                # 跑 Critic / Simulation 的基准测试，输出 report.json
+cd apps/agent-service
+set PYTHONPATH=.
+.venv\Scripts\python ..\..\packages\eval\benchmarks.py       # Critic Baseline + Adversarial 套件 -> report.json
+.venv\Scripts\python ..\..\packages\eval\retrieval_eval.py   # RAG 检索质量消融 -> retrieval_report.json
 ```
 
-最新一次运行结果见 [packages/eval/report.json](packages/eval/report.json)。
+方法论、结果解读、发现并修复的两个真实 bug、检索消融里一个反直觉发现的排查过程，
+全部写在 [docs/EVALUATION.md](docs/EVALUATION.md)，不只是甩数字。
 
 ## 目录
 

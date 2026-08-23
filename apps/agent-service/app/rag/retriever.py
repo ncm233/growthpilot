@@ -31,17 +31,22 @@ def _empty_result(reason: str) -> dict:
     return {"status": "unavailable", "reason": reason, "citations": [], "prompt_block": "（未找到可参考的历史案例）"}
 
 
-def search(query: str, top_k: int = 3) -> dict:
+def search(query: str, top_k: int = 3, embedder=None, reranker=None) -> dict:
     """Hybrid search -> cross-encoder rerank -> CRAG-style grade -> citations.
     Never raises: any failure (RAG deps not installed, corpus not ingested
     yet, empty corpus) degrades to an empty-but-valid result so callers
     (opportunity_agent / experiment_agent) can always proceed without RAG
-    rather than crashing the whole run."""
+    rather than crashing the whole run.
+
+    embedder/reranker default to the .env-configured provider (get_embedder()
+    / get_reranker()) but can be passed explicitly — used by
+    packages/eval/retrieval_eval.py to run several provider combinations in
+    one process without touching .env between runs."""
     import jieba
 
     try:
-        embedder = get_embedder()
-        reranker = get_reranker()
+        embedder = embedder or get_embedder()
+        reranker = reranker or get_reranker()
         query_vec = embedder.embed_query(query)
         query_tokens = " ".join(jieba.lcut(query))
         hits = store.hybrid_search(query_tokens, query_vec, limit=CANDIDATE_K)

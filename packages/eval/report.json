@@ -1,8 +1,24 @@
 {
-  "n_cases": 60,
-  "opportunity_detection_accuracy": 1.0,
-  "budget_constraint_catch_rate": 1.0,
-  "budget_constraint_false_positive_rate": 0.0,
-  "hallucination_catch_rate": 1.0,
-  "simulation_direction_accuracy": 1.0
+  "baseline": {
+    "n_cases": 60,
+    "opportunity_detection_accuracy": 1.0,
+    "budget_constraint_catch_rate": 1.0,
+    "budget_constraint_false_positive_rate": 0.0,
+    "hallucination_catch_rate": 1.0,
+    "simulation_direction_accuracy": 1.0
+  },
+  "adversarial": {
+    "n_cases": 28,
+    "accuracy": 1.0,
+    "per_case_accuracy": {
+      "budget_exact_limit": 1.0,
+      "budget_one_cent_over": 1.0,
+      "budget_one_cent_under": 1.0,
+      "growth_framed_as_drop": 1.0,
+      "flat_step_zero_drop": 1.0,
+      "phantom_step_reference": 1.0,
+      "subtle_one_percent_drift": 1.0
+    },
+    "failures": []
+  }
 }
